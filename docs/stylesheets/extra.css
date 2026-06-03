@@ -1,0 +1,59 @@
+/* ── Search result site labels ─────────────────────────────────────────────────
+ *
+ * Material for MkDocs renders each search hit as:
+ *
+ *   <li class="md-search-result__item">
+ *     <a href="/aptrust-docs/aptrust-user-guide/..." class="md-search-result__link">
+ *       <article class="md-search-result__article">
+ *         <h1>Page Title</h1>
+ *         <p>Excerpt…</p>
+ *       </article>
+ *     </a>
+ *   </li>
+ *
+ * The ::before pseudo-element on .md-search-result__article becomes the first
+ * rendered child, appearing above the page title as a coloured badge. Each
+ * badge is scoped to the URL prefix of its section via the CSS [href*=]
+ * attribute substring selector — no JavaScript needed.
+ *
+ * If the URL namespaces ever change (see README: "URL namespaces" known issue),
+ * update the four href patterns below to match.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* Shared badge appearance */
+.md-search-result__item a[href*="/aptrust-user-guide/"] .md-search-result__article::before,
+.md-search-result__item a[href*="/dart-documentation/"] .md-search-result__article::before,
+.md-search-result__item a[href*="/aptrust-preservation-services/"] .md-search-result__article::before,
+.md-search-result__item a[href*="/aptrust-registry/"] .md-search-result__article::before {
+  display: inline-block;
+  margin-bottom: 0.3em;
+  padding: 0.1em 0.45em;
+  border-radius: 0.15em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  color: #fff;
+}
+
+/* Per-section label text and colour */
+.md-search-result__item a[href*="/aptrust-user-guide/"] .md-search-result__article::before {
+  content: "User Guide";
+  background-color: #1565c0;
+}
+
+.md-search-result__item a[href*="/dart-documentation/"] .md-search-result__article::before {
+  content: "DART";
+  background-color: #2e7d32;
+}
+
+.md-search-result__item a[href*="/aptrust-preservation-services/"] .md-search-result__article::before {
+  content: "Preservation Services";
+  background-color: #b71c1c;
+}
+
+.md-search-result__item a[href*="/aptrust-registry/"] .md-search-result__article::before {
+  content: "Registry";
+  background-color: #6a1b9a;
+}
