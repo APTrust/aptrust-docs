@@ -7,7 +7,12 @@ name: Build and Deploy Documentation
 # 1. push to main — for direct changes to this repo: edits to the landing page,
 #    mkdocs.yml, requirements.txt, or workflow files.
 #
-# 2. repository_dispatch (type: sub-repo-updated) — for changes in any of the
+# 2. workflow_dispatch — allows manual runs from the GitHub Actions UI (Actions
+#    tab → select this workflow → Run workflow). Useful for forcing a redeploy
+#    without making a content change, and for the very first run that creates
+#    the gh-pages branch.
+#
+# 3. repository_dispatch (type: sub-repo-updated) — for changes in any of the
 #    four sub-repos (preserv-docs, registry-docs, dart-docs, userguide). Each
 #    sub-repo has its own workflow that fires a repository_dispatch event here
 #    whenever content is pushed to its main/master branch.
@@ -29,6 +34,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
   repository_dispatch:
     types:
       - sub-repo-updated
