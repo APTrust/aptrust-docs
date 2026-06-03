@@ -1,0 +1,191 @@
+name: Build and Deploy Documentation
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+#
+# This workflow fires under two conditions:
+#
+# 1. push to main — for direct changes to this repo: edits to the landing page,
+#    mkdocs.yml, requirements.txt, or workflow files.
+#
+# 2. repository_dispatch (type: sub-repo-updated) — for changes in any of the
+#    four sub-repos (preserv-docs, registry-docs, dart-docs, userguide). Each
+#    sub-repo has its own workflow that fires a repository_dispatch event here
+#    whenever content is pushed to its main/master branch.
+#
+#    How repository_dispatch works:
+#    - The sub-repo workflow calls the GitHub REST API:
+#        POST /repos/APTrust/aptrust-docs/dispatches
+#      with body: { "event_type": "sub-repo-updated", "client_payload": {...} }
+#    - The API call requires a token with repo scope on THIS repo (not the
+#      sub-repo). That token is stored as a secret named DOCS_DISPATCH_PAT in
+#      each sub-repo. See the "Dispatch" section of each sub-repo's workflow.
+#    - repository_dispatch always runs against the default branch (main), so
+#      the deployed site always reflects current content on main.
+#    - client_payload can carry metadata (e.g., which sub-repo changed, the
+#      commit SHA) that shows up in logs — useful for debugging, but we rebuild
+#      all four sub-repos regardless since mkdocs builds the whole site at once.
+#
+on:
+  push:
+    branches:
+      - main
+  repository_dispatch:
+    types:
+      - sub-repo-updated
+
+# ── Concurrency ───────────────────────────────────────────────────────────────
+#
+# If two sub-repos push within seconds of each other, both fire dispatch events
+# and two runs start. cancel-in-progress: true means the older run is cancelled
+# when the newer one starts — only the most recent content wins. This keeps
+# gh-pages from being written twice with slightly different state and prevents
+# deploy race conditions.
+#
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+# ── Permissions ───────────────────────────────────────────────────────────────
+#
+# contents: write is required by peaceiris/actions-gh-pages to push the built
+# site to the gh-pages branch of this repository. GitHub's default token
+# permissions may be read-only depending on org settings, so we declare this
+# explicitly rather than relying on defaults.
+#
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Show build context ──────────────────────────────────────────
+      #
+      # Print the trigger source and, for dispatch events, the client payload
+      # from the sub-repo. This makes it easy to trace which sub-repo caused a
+      # rebuild when reading Actions logs.
+      #
+      - name: Show build context
+        run: |
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Workflow SHA: ${{ github.sha }}"
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            echo "Dispatch event type: ${{ github.event.action }}"
+            echo "Client payload: ${{ toJSON(github.event.client_payload) }}"
+          fi
+
+      # ── Step 2: Check out aptrust-docs ──────────────────────────────────────
+      #
+      # Fetches this repo's content: mkdocs.yml, requirements.txt, docs/index.md,
+      # and this workflow file. The four docs/*/ sub-directories do not exist here;
+      # they are created in the next step by cloning the sub-repos.
+      #
+      - name: Check out aptrust-docs
+        uses: actions/checkout@v4
+
+      # ── Step 3: Clone sub-repositories ─────────────────────────────────────
+      #
+      # Each sub-repo is cloned into the path that the root mkdocs.yml references
+      # via !include. The directory layout after this step:
+      #
+      #   docs/
+      #   ├── index.md               ← from this repo (landing page)
+      #   ├── preserv/               ← APTrust/preserv-docs (cloned below)
+      #   │   ├── mkdocs.yml
+      #   │   └── docs/
+      #   ├── registry/              ← APTrust/registry-docs
+      #   │   ├── mkdocs.yml
+      #   │   └── docs/
+      #   ├── dart/                  ← APTrust/dart-docs
+      #   │   ├── mkdocs.yml
+      #   │   └── docs/
+      #   └── userguide/             ← APTrust/userguide
+      #       ├── mkdocs.yml
+      #       └── docs/
+      #
+      # --depth 1 fetches only the tip of the default branch, skipping git history.
+      # This keeps CI fast (a full clone of dart-docs with its history would be
+      # wasteful when we only need the files).
+      #
+      # These repositories are currently public, so no token is needed.
+      # If any repo becomes private, replace its HTTPS URL with the authenticated form:
+      #   https://x-access-token:${{ secrets.DOCS_CLONE_PAT }}@github.com/APTrust/<repo>.git
+      # and store DOCS_CLONE_PAT as an org-level Actions secret — a classic PAT
+      # (or fine-grained PAT) with Contents: Read on the private repos.
+      #
+      - name: Clone sub-repositories
+        run: |
+          git clone --depth 1 https://github.com/APTrust/preserv-docs  docs/preserv
+          git clone --depth 1 https://github.com/APTrust/registry-docs  docs/registry
+          git clone --depth 1 https://github.com/APTrust/dart-docs      docs/dart
+          git clone --depth 1 https://github.com/APTrust/userguide      docs/userguide
+
+      # ── Step 4: Set up Python ───────────────────────────────────────────────
+      #
+      # 3.12 matches the .python-version pin in dart-docs and registry-docs.
+      # cache: pip caches the pip download cache between runs using the hash of
+      # requirements.txt as the cache key. When requirements.txt hasn't changed
+      # the install step skips downloading packages, saving ~20-30s per run.
+      #
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      # ── Step 5: Install dependencies ────────────────────────────────────────
+      #
+      # Installs everything in requirements.txt: mkdocs, mkdocs-material,
+      # mkdocs-monorepo-plugin, pymdown-extensions, markdown-include, pygments,
+      # mkdocs-redirects, and fontawesome-markdown.
+      #
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # ── Step 6: Build the documentation site ────────────────────────────────
+      #
+      # mkdocs reads the root mkdocs.yml. The mkdocs-monorepo-plugin resolves
+      # the four !include directives in the nav section: it reads each sub-repo's
+      # mkdocs.yml to get that section's nav tree and docs_dir, then merges
+      # everything into a single unified site written to ./site/.
+      #
+      # NOTE: --strict is intentionally omitted here. The dart-docs mkdocs.yml
+      # nav currently references pages that do not exist in the repository, which
+      # would cause --strict to treat those missing-file warnings as hard errors
+      # and fail the build. Once the dart-docs nav is reconciled with its actual
+      # content (Part 1 identified ~50 missing pages), change this line to:
+      #   mkdocs build --strict
+      # Running strict in CI is the right long-term posture — it prevents broken
+      # nav links from shipping silently.
+      #
+      - name: Build documentation site
+        run: mkdocs build
+
+      # ── Step 7: Deploy to GitHub Pages ──────────────────────────────────────
+      #
+      # peaceiris/actions-gh-pages pushes the contents of ./site/ to the
+      # gh-pages branch of this repository. GitHub Pages then serves that branch
+      # at https://aptrust.github.io/aptrust-docs/ (or a custom domain if
+      # configured in Settings → Pages → Custom domain).
+      #
+      # GITHUB_TOKEN is provided automatically by Actions. No additional secret
+      # is needed because we are deploying to a branch in the same repo that
+      # this workflow runs in.
+      #
+      # force_orphan: true rewrites gh-pages as a fresh single-commit branch on
+      # every deploy. This keeps the gh-pages branch lean — without it the branch
+      # accumulates a full HTML commit history that has no useful content.
+      #
+      # Prerequisite: in this repo's Settings → Pages, set the source to
+      # "Deploy from a branch" → branch: gh-pages, folder: / (root).
+      #
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          commit_message: 'docs: deploy ${{ github.sha }}'
