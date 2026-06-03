@@ -17,13 +17,24 @@ This repo contains only the scaffolding for the unified site. It does not contai
 | Preservation Services | [APTrust/preserv-docs](https://github.com/APTrust/preserv-docs) | `/preservation-services-docs/` |
 | Registry | [APTrust/registry-docs](https://github.com/APTrust/registry-docs) | `/registry-docs/` |
 
+Two additional tabs are bridge pages — they live in `docs/` in this repo and link out to content on the APTrust website:
+
+| Tab | File | Links to |
+|---|---|---|
+| Other Documentation | `docs/documentation.md` | https://aptrust.org/documentation/ |
+| Policies | `docs/policies.md` | https://aptrust.org/resources/policies/ |
+
 Files in this repo:
 
 ```
 mkdocs.yml          # Root MkDocs config — theme, plugins, nav with !include entries
 requirements.txt    # Python dependencies for building the site
 docs/
-└── index.md        # Landing page (the only content file owned by this repo)
+├── index.md              # Landing page
+├── documentation.md      # Bridge page → aptrust.org/documentation/
+├── policies.md           # Bridge page → aptrust.org/resources/policies/
+└── stylesheets/
+    └── extra.css         # Search result site-label badges
 .github/
 └── workflows/
     └── build-and-deploy.yml
@@ -45,7 +56,7 @@ repos/               ← created at build time, not committed
 
 The build-and-deploy workflow runs on three triggers:
 
-1. **Push to `main` in this repo** — for changes to the landing page, `mkdocs.yml`, or `requirements.txt`.
+1. **Push to `main` in this repo** — for changes to the landing page, bridge pages, `mkdocs.yml`, or `requirements.txt`.
 
 2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a secret named `DOCS_DISPATCH_TOKEN` in each sub-repo: a fine-grained PAT with **Actions: write** permission on this repo (`APTrust/aptrust-docs`).
 
@@ -68,13 +79,20 @@ mkdocs serve     # live preview at http://127.0.0.1:8000
 mkdocs build     # write static site to ./site/
 ```
 
-## Adding or removing a sub-repo
+## Adding a sub-repo
 
 1. Add an `!include` entry to the `nav:` block in `mkdocs.yml`.
 2. Add a matching `git clone` line to the Clone step in `.github/workflows/build-and-deploy.yml`.
 3. Add `notify-parent-docs.yml` to the new sub-repo and configure `DOCS_DISPATCH_TOKEN` in its secrets.
+4. Add a badge selector to `docs/stylesheets/extra.css` so search results show the section label.
+
+## Adding a bridge page
+
+1. Create a markdown file in `docs/` describing the external content and linking to it.
+2. Add it to the `nav:` block in `mkdocs.yml`.
 
 ## Known issues
 
 - **Internal absolute links**: preserv-docs and registry-docs contain links written as root-relative paths (e.g., `/workers/ingest/bucket-reader`) that worked on their standalone sites but don't resolve correctly in the unified site. These need to be fixed in the source repos.
-- **URL namespaces**: The monorepo plugin derives URL path prefixes from each sub-repo's `site_name` (e.g., "APTrust Preservation Services" → `aptrust-preservation-services/`). To change the URL prefix, change `site_name` in the sub-repo's `mkdocs.yml`.
+- **URL namespaces**: The monorepo plugin derives URL path prefixes from each sub-repo's `site_name`. To change the URL prefix, change `site_name` in the sub-repo's `mkdocs.yml`, then update the matching `href*=` selector in `docs/stylesheets/extra.css`.
+- **Bridge page content drift**: The descriptions in `documentation.md` and `policies.md` are static and will need occasional manual updates if APTrust.org reorganises those pages.
