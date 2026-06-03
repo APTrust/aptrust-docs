@@ -12,10 +12,10 @@ This repo contains only the scaffolding for the unified site. It does not contai
 
 | Tab | Source repo | URL path |
 |---|---|---|
-| User Guide | [APTrust/userguide](https://github.com/APTrust/userguide) | `/aptrust-user-guide/` |
-| DART | [APTrust/dart-docs](https://github.com/APTrust/dart-docs) | `/dart-documentation/` |
-| Preservation Services | [APTrust/preserv-docs](https://github.com/APTrust/preserv-docs) | `/aptrust-preservation-services/` |
-| Registry | [APTrust/registry-docs](https://github.com/APTrust/registry-docs) | `/aptrust-registry/` |
+| User Guide | [APTrust/userguide](https://github.com/APTrust/userguide) | `/user-guide/` |
+| DART | [APTrust/dart-docs](https://github.com/APTrust/dart-docs) | `/dart-docs/` |
+| Preservation Services | [APTrust/preserv-docs](https://github.com/APTrust/preserv-docs) | `/preservation-services-docs/` |
+| Registry | [APTrust/registry-docs](https://github.com/APTrust/registry-docs) | `/registry-docs/` |
 
 Files in this repo:
 
