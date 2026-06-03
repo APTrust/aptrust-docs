@@ -1,32 +1,38 @@
 /* ── Search result site labels ─────────────────────────────────────────────────
  *
- * Material for MkDocs renders each search hit as:
+ * Material for MkDocs renders each result item as:
  *
  *   <li class="md-search-result__item">
- *     <a href="/aptrust-docs/user-guide/..." class="md-search-result__link">
- *       <article class="md-search-result__article">
+ *     <!-- Page-title row (icon + title) — we skip this one -->
+ *     <a href="...">
+ *       <article class="md-search-result__article md-search-result__article--document">
+ *         <div class="md-search-result__icon">…</div>
  *         <h1>Page Title</h1>
+ *       </article>
+ *     </a>
+ *     <!-- Section match(es) — badge goes here -->
+ *     <a href="...#section">
+ *       <article class="md-search-result__article">
+ *         <h1>Section Heading</h1>
  *         <p>Excerpt…</p>
  *       </article>
  *     </a>
  *   </li>
  *
- * The ::before pseudo-element on .md-search-result__article becomes the first
- * rendered child, appearing above the page title as a coloured badge. Each
- * badge is scoped to the URL prefix of its section via the CSS [href*=]
- * attribute substring selector — no JavaScript needed.
+ * :not(.md-search-result__article--document) targets only the section articles,
+ * not the page-title row. Without this, a second badge appears in the gap before
+ * the page title, which looks like a floating label between result items.
  *
- * If the URL namespaces ever change (see README: "URL namespaces" known issue),
- * update the four href patterns below to match.
+ * If URL namespaces change, update the four href patterns below.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-/* Shared badge appearance */
-.md-search-result__item a[href*="/user-guide/"] .md-search-result__article::before,
-.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article::before,
-.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article::before,
-.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article::before {
+/* Shared badge appearance — section articles only */
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
   display: inline-block;
-  margin-bottom: 0.3em;
+  margin-bottom: 0.4em;
   padding: 0.1em 0.45em;
   border-radius: 0.15em;
   font-size: 0.6rem;
@@ -38,22 +44,22 @@
 }
 
 /* Per-section label text and colour */
-.md-search-result__item a[href*="/user-guide/"] .md-search-result__article::before {
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article:not(.md-search-result__article--document)::before {
   content: "User Guide";
   background-color: #1565c0;
 }
 
-.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article::before {
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
   content: "DART";
   background-color: #2e7d32;
 }
 
-.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article::before {
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
   content: "Preservation Services";
   background-color: #b71c1c;
 }
 
-.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article::before {
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
   content: "Registry";
   background-color: #6a1b9a;
 }
