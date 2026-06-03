@@ -1,4 +1,4 @@
-# APTrust Documentation
+# Other APTrust Documentation
 
 The APTrust website hosts additional documentation covering our Trusted Digital Repository
 certification, member-restricted technical resources, and legacy reference materials.
