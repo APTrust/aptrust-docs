@@ -64,6 +64,11 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      # Opt into Node.js 24 now rather than waiting for the forced migration
+      # on 2026-09-16. Suppresses the deprecation warnings from actions/checkout
+      # and actions/setup-python which still ship Node 20 binaries.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       # ── Step 1: Show build context ──────────────────────────────────────────
@@ -92,12 +97,18 @@ jobs:
 
       # ── Step 3: Clone sub-repositories ─────────────────────────────────────
       #
-      # Each sub-repo is cloned into the path that the root mkdocs.yml references
-      # via !include. The directory layout after this step:
+      # Each sub-repo is cloned into repos/ at the project root, NOT inside docs/.
+      # The monorepo plugin resolves !include paths relative to mkdocs.yml (the
+      # project root), so repos/ works fine. Keeping repos outside docs/ prevents
+      # MkDocs's own docs scanner from also discovering those markdown files and
+      # publishing them as a second, duplicate set of pages.
+      #
+      # Directory layout after this step:
       #
       #   docs/
-      #   ├── index.md               ← from this repo (landing page)
-      #   ├── preserv/               ← APTrust/preserv-docs (cloned below)
+      #   └── index.md               ← from this repo (landing page only)
+      #   repos/
+      #   ├── preserv/               ← APTrust/preserv-docs
       #   │   ├── mkdocs.yml
       #   │   └── docs/
       #   ├── registry/              ← APTrust/registry-docs
@@ -111,8 +122,6 @@ jobs:
       #       └── docs/
       #
       # --depth 1 fetches only the tip of the default branch, skipping git history.
-      # This keeps CI fast (a full clone of dart-docs with its history would be
-      # wasteful when we only need the files).
       #
       # These repositories are currently public, so no token is needed.
       # If any repo becomes private, replace its HTTPS URL with the authenticated form:
@@ -122,10 +131,10 @@ jobs:
       #
       - name: Clone sub-repositories
         run: |
-          git clone --depth 1 https://github.com/APTrust/preserv-docs  docs/preserv
-          git clone --depth 1 https://github.com/APTrust/registry-docs  docs/registry
-          git clone --depth 1 https://github.com/APTrust/dart-docs      docs/dart
-          git clone --depth 1 https://github.com/APTrust/userguide      docs/userguide
+          git clone --depth 1 https://github.com/APTrust/preserv-docs  repos/preserv
+          git clone --depth 1 https://github.com/APTrust/registry-docs  repos/registry
+          git clone --depth 1 https://github.com/APTrust/dart-docs      repos/dart
+          git clone --depth 1 https://github.com/APTrust/userguide      repos/userguide
 
       # ── Step 4: Set up Python ───────────────────────────────────────────────
       #

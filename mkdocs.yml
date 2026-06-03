@@ -55,7 +55,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - User Guide: '!include ./docs/userguide/mkdocs.yml'
-  - DART: '!include ./docs/dart/mkdocs.yml'
-  - Preservation Services: '!include ./docs/preserv/mkdocs.yml'
-  - Registry: '!include ./docs/registry/mkdocs.yml'
+  - User Guide: '!include ./repos/userguide/mkdocs.yml'
+  - DART: '!include ./repos/dart/mkdocs.yml'
+  - Preservation Services: '!include ./repos/preserv/mkdocs.yml'
+  - Registry: '!include ./repos/registry/mkdocs.yml'
