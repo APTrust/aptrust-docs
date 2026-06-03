@@ -62,3 +62,5 @@ nav:
   - DART: '!include ./repos/dart/mkdocs.yml'
   - Preservation Services: '!include ./repos/preserv/mkdocs.yml'
   - Registry: '!include ./repos/registry/mkdocs.yml'
+  - Documentation: documentation.md
+  - Policies: policies.md
