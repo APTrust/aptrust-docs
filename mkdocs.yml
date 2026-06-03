@@ -1,0 +1,61 @@
+site_name: APTrust Documentation
+site_url: https://aptrust.github.io/aptrust-docs/
+repo_url: https://github.com/APTrust/aptrust-docs
+repo_name: APTrust/aptrust-docs
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.instant
+    - search.highlight
+    - search.share
+
+plugins:
+  - search
+  - monorepo
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - markdown_include.include:
+      base_path: docs
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+  - User Guide: '!include ./docs/userguide/mkdocs.yml'
+  - DART: '!include ./docs/dart/mkdocs.yml'
+  - Preservation Services: '!include ./docs/preserv/mkdocs.yml'
+  - Registry: '!include ./docs/registry/mkdocs.yml'
