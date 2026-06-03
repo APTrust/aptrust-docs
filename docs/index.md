@@ -4,7 +4,7 @@ Welcome to the APTrust documentation hub. This site brings together all APTrust 
 
 ---
 
-## [User Guide](/aptrust-docs/aptrust-user-guide/)
+## [User Guide](/aptrust-docs/user-guide/)
 
 Documentation for APTrust members and depositors. Covers the full preservation lifecycle — ingesting content, monitoring work items, restoring and deleting objects — as well as how to navigate the Registry web interface, manage accounts and permissions, and use the REST API.
 
@@ -12,7 +12,7 @@ Documentation for APTrust members and depositors. Covers the full preservation l
 
 ---
 
-## [DART](/aptrust-docs/dart-documentation/)
+## [DART](/aptrust-docs/dart-docs/)
 
 Documentation for DART (Digital Archivist's Resource Tool), a desktop application for packaging files as BagIt bags and uploading them to APTrust. Covers both DART 2 and DART 3, including job configuration, workflow automation, batch processing, BagIt profile management, and the command-line interface. Also covers DART Runner for scripted and server-side workflows.
 
@@ -20,7 +20,7 @@ Documentation for DART (Digital Archivist's Resource Tool), a desktop applicatio
 
 ---
 
-## [Preservation Services](/aptrust-docs/aptrust-preservation-services/)
+## [Preservation Services](/aptrust-docs/preservation-services-docs/)
 
 Technical documentation for the APTrust preservation backend — the workers, components, and infrastructure that handle ingest, fixity checking, restoration, and deletion. Covers code structure, worker anatomy, the ingest pipeline stages, Redis and NSQ messaging, S3 storage, Docker deployment, and the internal auditor.
 
@@ -28,7 +28,7 @@ Technical documentation for the APTrust preservation backend — the workers, co
 
 ---
 
-## [Registry](/aptrust-docs/aptrust-registry/)
+## [Registry](/aptrust-docs/registry-docs/)
 
 Developer documentation for the APTrust Registry web application, which provides the member-facing UI and REST API. Covers code structure, request handling, security model (roles, authentication, authorization, CSRF, headers), data models, database, NSQ integration, UI components, and the testing approach.
 
