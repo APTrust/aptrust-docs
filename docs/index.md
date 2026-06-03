@@ -36,5 +36,5 @@ Developer documentation for the APTrust Registry web application, which provides
 
 ---
 
-*For member support, contact [support@aptrust.org](mailto:support@aptrust.org).
+*For member support, contact [help@aptrust.org](mailto:help@aptrust.org).
 For the APTrust website, visit [aptrust.org](https://aptrust.org).*
