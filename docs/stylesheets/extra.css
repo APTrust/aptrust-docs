@@ -21,10 +21,10 @@
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /* Shared badge appearance */
-.md-search-result__item a[href*="/aptrust-user-guide/"] .md-search-result__article::before,
-.md-search-result__item a[href*="/dart-documentation/"] .md-search-result__article::before,
-.md-search-result__item a[href*="/aptrust-preservation-services/"] .md-search-result__article::before,
-.md-search-result__item a[href*="/aptrust-registry/"] .md-search-result__article::before {
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article::before,
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article::before,
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article::before,
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article::before {
   display: inline-block;
   margin-bottom: 0.3em;
   padding: 0.1em 0.45em;
