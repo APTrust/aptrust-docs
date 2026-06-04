@@ -209,10 +209,6 @@
 
             function activateTrap() {
                 setTabindex(true);
-                var focusable = Array.from(sidebar.querySelectorAll(
-                    'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
-                )).filter(function (el) { return el.offsetParent !== null; });
-                if (focusable.length) focusable[0].focus();
                 trapHandler = function (e) {
                     if (e.key !== 'Tab') return;
                     var f = Array.from(sidebar.querySelectorAll(
@@ -226,6 +222,16 @@
                     }
                 };
                 document.addEventListener('keydown', trapHandler);
+                /* Delay initial focus until the CSS slide-in animation finishes
+                   (250ms transition). Calling focus() immediately moves focus to
+                   an element that is still off-screen (left:-12.1rem + translateX
+                   animating), which confuses VoiceOver's visual cursor. */
+                setTimeout(function () {
+                    var focusable = Array.from(sidebar.querySelectorAll(
+                        'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
+                    )).filter(function (el) { return el.offsetParent !== null; });
+                    if (focusable.length) focusable[0].focus();
+                }, 280);
             }
 
             function deactivateTrap() {
