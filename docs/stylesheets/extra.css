@@ -141,9 +141,24 @@
   --md-accent-fg-color--transparent: rgba(192, 132, 208, 0.1);
 }
 
-/* Fix link color — must override --md-typeset-a-color directly */
+/* Fix link color — Material sets --md-typeset-a-color independently of
+   --md-accent-fg-color so we must override it explicitly in both schemes. */
+[data-md-color-scheme="default"] {
+  --md-typeset-a-color: #5a2566;   /* brand purple — 10.5:1 on white */
+}
+
 [data-md-color-scheme="slate"] {
-  --md-typeset-a-color: #c084d0;
+  --md-typeset-a-color: #c084d0;   /* light purple — 5.9:1 on slate dark bg */
+}
+
+/* WCAG 1.4.1: colour alone must not be the sole indicator that text is a
+   link. Add underlines to inline content links (paragraphs and list items).
+   Heading, nav, and button links are excluded — they have structural context
+   that makes their purpose clear without underlines. */
+.md-typeset p a,
+.md-typeset li a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 /* Fix primary button — navy on near-black is invisible; use outlined style */
