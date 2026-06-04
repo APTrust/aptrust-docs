@@ -125,7 +125,7 @@
 }
 
 .md-typeset a[target="_blank"]:not(.md-button)::after {
-  content: " ↗";
+  content: " \2197";  /* ↗ NORTH EAST ARROW — Unicode escape avoids charset parse issues */
   font-size: 0.75em;
   vertical-align: super;
   opacity: 0.7;
