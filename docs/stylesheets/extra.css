@@ -100,3 +100,34 @@
   scroll-margin-top: 80px;
 }
 
+/* ── New-tab link indicators (WCAG 3.2.2) ───────────────────────────
+ *
+ * .sr-only — standard visually-hidden pattern. Text is announced by
+ *   screen readers but takes up no visible space.
+ *
+ * a[target="_blank"]::after — small ↗ icon appended after the link
+ *   text so sighted users also see that the link opens a new tab.
+ *   aria-hidden is not settable via CSS, but the JS-injected .sr-only
+ *   span already covers the screen-reader announcement, so the icon
+ *   is intentionally decorative and redundant for AT users.
+ * ──────────────────────────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.md-typeset a[target="_blank"]:not(.md-button)::after {
+  content: " ↗";
+  font-size: 0.75em;
+  vertical-align: super;
+  opacity: 0.7;
+}
+

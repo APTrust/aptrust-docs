@@ -18,8 +18,34 @@
        document$ is Material for MkDocs' RxJS observable that emits on each
        page change — it covers both the initial load and all instant navigations. */
     document$.subscribe(function () {
+        /* Matomo: track page view on every navigation */
         _paq.push(['setCustomUrl', 'https://docs.aptrust.org/docs.aptrust.org/' + window.location.pathname.replace(/^\//, '')]);
         _paq.push(['trackPageView']);
+
+        /* WCAG 3.2.2: warn users when a link opens in a new tab.
+           For every target="_blank" link:
+             1. Add rel="noopener" if missing (security best practice).
+             2. Append a visually-hidden span so screen readers announce
+                "opens in new tab" after the link text.
+           The .sr-only class in extra.css hides the span visually.
+           A CSS ::after rule adds a small ↗ icon for sighted users.
+           Both are applied on every page change (instant navigation). */
+        document.querySelectorAll('a[target="_blank"]').forEach(function (link) {
+            /* Security: ensure rel contains noopener */
+            var rel = (link.getAttribute('rel') || '').split(' ').filter(Boolean);
+            if (!rel.includes('noopener')) {
+                rel.push('noopener');
+                link.setAttribute('rel', rel.join(' '));
+            }
+
+            /* Accessibility: add screen-reader announcement if not already present */
+            if (!link.querySelector('.new-tab-label')) {
+                var span = document.createElement('span');
+                span.className = 'new-tab-label sr-only';
+                span.textContent = ' (opens in new tab)';
+                link.appendChild(span);
+            }
+        });
     });
 </script>
 {% endblock %}
