@@ -67,4 +67,3 @@ nav:
   - Registry: '!include ./repos/registry/mkdocs.yml'
   - Other Documentation: documentation.md
   - Policies: policies.md
-  - Accessibility: accessibility.md
