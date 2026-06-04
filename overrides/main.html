@@ -18,7 +18,7 @@
        document$ is Material for MkDocs' RxJS observable that emits on each
        page change — it covers both the initial load and all instant navigations. */
     document$.subscribe(function () {
-        _paq.push(['setCustomUrl', 'https://docs.aptrust.org/docs.aptrust.org' + window.location.pathname.replace(/^\//, '')]);
+        _paq.push(['setCustomUrl', 'https://docs.aptrust.org/docs.aptrust.org/' + window.location.pathname.replace(/^\//, '')]);
         _paq.push(['trackPageView']);
     });
 </script>
