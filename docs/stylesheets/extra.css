@@ -178,3 +178,16 @@
   outline: 2px solid #FFD600;
   outline-offset: -2px;
 }
+
+/* Mobile drawer: show full navigation.
+   On desktop, .md-nav--lifted hides all top-level nav items except the active
+   section because the tab bar handles top-level navigation. On mobile the tab
+   bar is display:none, so the hamburger drawer is the ONLY navigation path.
+   Without this fix the drawer shows only the current section (or nothing on the
+   homepage), leaving keyboard and VoiceOver users unable to reach other sections.
+   The active section keeps its sticky-label treatment from Material's CSS. */
+@media screen and (max-width: 76.234375em) {
+  .md-nav--primary.md-nav--lifted > .md-nav__list > .md-nav__item {
+    display: block !important;
+  }
+}
