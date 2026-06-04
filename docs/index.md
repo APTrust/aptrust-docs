@@ -1,3 +1,9 @@
+---
+description: >
+  APTrust documentation hub: user guides for depositing, registry management,
+  DART desktop tool, and preservation services technical reference.
+---
+
 # APTrust Documentation
 
 Welcome to the APTrust documentation hub. This site brings together all APTrust documentation in one place. Use the tabs above to navigate between sections, or browse the guides below.
