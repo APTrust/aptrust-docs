@@ -63,3 +63,8 @@
   content: "Registry";
   background-color: #6a1b9a;
 }
+
+/* WCAG 1.4.3 fix: inactive tab text must meet 4.5:1 contrast */
+.md-tabs__link {
+  color: rgba(255, 255, 255, 1) !important;
+}
