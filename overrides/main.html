@@ -32,6 +32,22 @@
            The CSS a[target="_blank"]::after rule in extra.css then applies
            the ↗ icon automatically for sighted users.
            All three steps run on every page change (instant navigation). */
+        /* WCAG 2.4.4 / 2.4.6: icon-only links in the header and page content use
+           `title` for tooltips but `aria-label` is announced more reliably by
+           screen readers. Copy title → aria-label where aria-label is absent.
+           The repo link also gets "on GitHub" appended so its purpose is clear. */
+        var repoBtn = document.querySelector('a.md-header__button.md-icon[href*="github.com"]');
+        if (repoBtn && !repoBtn.getAttribute('aria-label')) {
+            var repoTitle = repoBtn.getAttribute('title') || 'repository';
+            repoBtn.setAttribute('aria-label', repoTitle + ' on GitHub');
+        }
+
+        document.querySelectorAll('a.md-content__button[title]').forEach(function (btn) {
+            if (!btn.getAttribute('aria-label')) {
+                btn.setAttribute('aria-label', btn.getAttribute('title'));
+            }
+        });
+
         document.querySelectorAll('.md-typeset a[href^="http"]').forEach(function (link) {
             /* Skip links that point to this same site */
             if (link.hostname === location.hostname) return;
