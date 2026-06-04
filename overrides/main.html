@@ -22,15 +22,23 @@
         _paq.push(['setCustomUrl', 'https://docs.aptrust.org/docs.aptrust.org/' + window.location.pathname.replace(/^\//, '')]);
         _paq.push(['trackPageView']);
 
-        /* WCAG 3.2.2: warn users when a link opens in a new tab.
-           For every target="_blank" link:
-             1. Add rel="noopener" if missing (security best practice).
-             2. Append a visually-hidden span so screen readers announce
+        /* WCAG 3.2.2 + general best practice: all external links should open
+           in a new tab with accessible indicators. For every external link
+           (http/https, not pointing to this site) in the content area:
+             1. Set target="_blank" so it opens in a new tab.
+             2. Add rel="noopener" (security — prevents window.opener access).
+             3. Append a visually-hidden span so screen readers announce
                 "opens in new tab" after the link text.
-           The .sr-only class in extra.css hides the span visually.
-           A CSS ::after rule adds a small ↗ icon for sighted users.
-           Both are applied on every page change (instant navigation). */
-        document.querySelectorAll('a[target="_blank"]').forEach(function (link) {
+           The CSS a[target="_blank"]::after rule in extra.css then applies
+           the ↗ icon automatically for sighted users.
+           All three steps run on every page change (instant navigation). */
+        document.querySelectorAll('.md-typeset a[href^="http"]').forEach(function (link) {
+            /* Skip links that point to this same site */
+            if (link.hostname === location.hostname) return;
+
+            /* Open in new tab */
+            link.setAttribute('target', '_blank');
+
             /* Security: ensure rel contains noopener */
             var rel = (link.getAttribute('rel') || '').split(' ').filter(Boolean);
             if (!rel.includes('noopener')) {
