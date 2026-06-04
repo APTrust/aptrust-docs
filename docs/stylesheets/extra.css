@@ -32,6 +32,7 @@
 .md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
 .md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
   display: inline-block;
+  margin-top: 0.4em;
   margin-bottom: 0.4em;
   padding: 0.1em 0.45em;
   border-radius: 0.15em;
