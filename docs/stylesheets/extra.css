@@ -156,27 +156,25 @@
   opacity: 0.7;
 }
 
-/* VoiceOver / sidebar sub-navigation: nested .md-nav panels inside the primary
-   sidebar have a white background but inherit --md-primary-fg-color (white for
-   indigo) as text color from the parent, making all sub-menu text invisible.
-   Reset link and title colors to the default dark foreground for any .md-nav
-   nested inside .md-nav--primary. The section title back-button also needs an
-   explicit background so it doesn't bleed the indigo color. */
-.md-nav--primary .md-nav .md-nav__link {
+/* VoiceOver / mobile drawer: the sidebar has a white background at all
+   viewport widths. Material sets .md-nav__link colors to
+   --md-primary-fg-color (white for indigo), making every link in the open
+   drawer invisible against that white background. Fix applies to all levels —
+   top-level section links AND nested sub-menu links. The drawer title
+   (.md-nav__title on .md-nav--primary) intentionally keeps its indigo
+   background + white text; only .md-nav__link elements are overridden. */
+.md-sidebar--primary .md-nav__link {
   color: var(--md-default-fg-color) !important;
 }
+
+/* Section back-buttons inside nested panels also need dark text/white bg. */
 .md-nav--primary .md-nav > .md-nav__title {
   background-color: var(--md-default-bg-color) !important;
   color: var(--md-default-fg-color) !important;
 }
 
-/* Focus outline for primary nav links on the indigo drawer background */
-.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link:focus {
-  outline: 2px solid #ffffff;
-  outline-offset: -2px;
-}
-/* Focus outline for nested sub-nav links on white background */
-.md-nav--primary .md-nav .md-nav__link:focus {
+/* All sidebar links sit on a white background — yellow focus ring throughout. */
+.md-sidebar--primary .md-nav__link:focus {
   outline: 2px solid #FFD600;
   outline-offset: -2px;
 }
