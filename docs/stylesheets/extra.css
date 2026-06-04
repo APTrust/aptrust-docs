@@ -156,8 +156,27 @@
   opacity: 0.7;
 }
 
-/* VoiceOver focus visibility in mobile drawer */
-.md-nav--primary .md-nav__link:focus {
-  outline: 2px solid var(--md-primary-fg-color);
+/* VoiceOver / sidebar sub-navigation: nested .md-nav panels inside the primary
+   sidebar have a white background but inherit --md-primary-fg-color (white for
+   indigo) as text color from the parent, making all sub-menu text invisible.
+   Reset link and title colors to the default dark foreground for any .md-nav
+   nested inside .md-nav--primary. The section title back-button also needs an
+   explicit background so it doesn't bleed the indigo color. */
+.md-nav--primary .md-nav .md-nav__link {
+  color: var(--md-default-fg-color) !important;
+}
+.md-nav--primary .md-nav > .md-nav__title {
+  background-color: var(--md-default-bg-color) !important;
+  color: var(--md-default-fg-color) !important;
+}
+
+/* Focus outline for primary nav links on the indigo drawer background */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+/* Focus outline for nested sub-nav links on white background */
+.md-nav--primary .md-nav .md-nav__link:focus {
+  outline: 2px solid #FFD600;
   outline-offset: -2px;
 }
