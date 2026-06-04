@@ -48,6 +48,139 @@
             }
         });
 
+        /* WCAG 2.1.1: keyboard access for Material's label-based toggles.
+           Material for MkDocs uses <label for="__drawer"> and <label for="__nav-*">
+           as CSS-only checkbox toggles. Labels are not keyboard-focusable by
+           default, so the hamburger menu and sidebar section toggles can't be
+           reached or activated without a mouse. The fix: add tabindex/role/keydown
+           to each label so keyboard and AT users can operate them. A data attribute
+           guards against duplicate listener attachment across instant navigations. */
+        function patchLabelToggle(label) {
+            if (label.dataset.kbPatched) return;
+            label.dataset.kbPatched = '1';
+            var cb = document.getElementById(label.getAttribute('for'));
+            label.setAttribute('tabindex', '0');
+            label.setAttribute('role', 'button');
+            if (cb) {
+                label.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
+                /* WCAG 4.1.2: aria-controls associates this toggle with the
+                   nav section it shows/hides, satisfying Custom Controls. */
+                var navEl = label.parentElement && (
+                    label.parentElement.querySelector(':scope > nav.md-nav') ||
+                    label.parentElement.querySelector(':scope > ul.md-nav__list')
+                );
+                if (navEl) {
+                    if (!navEl.id) navEl.id = label.getAttribute('for') + '-content';
+                    label.setAttribute('aria-controls', navEl.id);
+                }
+                cb.addEventListener('change', function () {
+                    label.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
+                });
+            }
+            label.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (cb) cb.click();
+                }
+            });
+        }
+
+        var drawerLabel = document.querySelector('label[for="__drawer"]');
+        if (drawerLabel) patchLabelToggle(drawerLabel);
+
+        document.querySelectorAll('label[for^="__nav-"]').forEach(patchLabelToggle);
+
+        /* WCAG 4.1.1: expose the active nav item to assistive technologies.
+           Material adds md-nav__link--active but no aria-current; screen readers
+           can't determine which page is current without it. Re-run on every
+           navigation so the correct item is always marked. */
+        document.querySelectorAll('.md-nav__link[aria-current]').forEach(function (l) {
+            l.removeAttribute('aria-current');
+        });
+        document.querySelectorAll('.md-nav__link--active').forEach(function (l) {
+            l.setAttribute('aria-current', 'page');
+        });
+
+        /* WCAG 2.4.3: in mobile view the sidebar is off-screen when the drawer
+           is closed — its links must be removed from the tab order so keyboard
+           users don't land on invisible content. When the drawer opens, focus is
+           moved inside and trapped until the user closes it (matching modal dialog
+           behaviour). The IIFE + dataset.trapSetup guard ensures the change and
+           resize listeners are attached only once across instant navigations. */
+        (function () {
+            var drawerCb  = document.getElementById('__drawer');
+            var sidebar   = document.querySelector('.md-sidebar--primary');
+            var dLabel    = document.querySelector('label[for="__drawer"]');
+            if (!drawerCb || !sidebar || drawerCb.dataset.trapSetup) return;
+            drawerCb.dataset.trapSetup = '1';
+
+            function isMobile() { return window.innerWidth < 960; }
+
+            function setTabindex(open) {
+                sidebar.querySelectorAll('a, button').forEach(function (el) {
+                    open ? el.removeAttribute('tabindex') : el.setAttribute('tabindex', '-1');
+                });
+                sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
+                    l.setAttribute('tabindex', open ? '0' : '-1');
+                });
+            }
+
+            var trapHandler = null;
+
+            function activateTrap() {
+                setTabindex(true);
+                var focusable = Array.from(sidebar.querySelectorAll(
+                    'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
+                )).filter(function (el) { return el.offsetParent !== null; });
+                if (focusable.length) focusable[0].focus();
+                trapHandler = function (e) {
+                    if (e.key !== 'Tab') return;
+                    var f = Array.from(sidebar.querySelectorAll(
+                        'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
+                    )).filter(function (el) { return el.offsetParent !== null; });
+                    if (!f.length) return;
+                    if (e.shiftKey && document.activeElement === f[0]) {
+                        e.preventDefault(); f[f.length - 1].focus();
+                    } else if (!e.shiftKey && document.activeElement === f[f.length - 1]) {
+                        e.preventDefault(); f[0].focus();
+                    }
+                };
+                document.addEventListener('keydown', trapHandler);
+            }
+
+            function deactivateTrap() {
+                if (trapHandler) {
+                    document.removeEventListener('keydown', trapHandler);
+                    trapHandler = null;
+                }
+                setTabindex(false);
+                if (dLabel) dLabel.focus();
+            }
+
+            if (isMobile()) setTabindex(false);
+
+            drawerCb.addEventListener('change', function () {
+                if (isMobile()) { drawerCb.checked ? activateTrap() : deactivateTrap(); }
+            });
+
+            window.addEventListener('resize', function () {
+                if (!isMobile()) {
+                    if (trapHandler) {
+                        document.removeEventListener('keydown', trapHandler);
+                        trapHandler = null;
+                    }
+                    sidebar.querySelectorAll('[tabindex="-1"]').forEach(function (el) {
+                        el.removeAttribute('tabindex');
+                    });
+                    sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
+                        l.setAttribute('tabindex', '0');
+                    });
+                } else if (!drawerCb.checked) {
+                    setTabindex(false);
+                }
+            });
+        }());
+
         document.querySelectorAll('.md-typeset a[href^="http"]').forEach(function (link) {
             /* Skip links that point to this same site */
             if (link.hostname === location.hostname) return;
