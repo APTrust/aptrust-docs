@@ -153,12 +153,24 @@
 
 /* WCAG 1.4.1: colour alone must not be the sole indicator that text is a
    link. Add underlines to inline content links (paragraphs and list items).
-   Heading, nav, and button links are excluded — they have structural context
-   that makes their purpose clear without underlines. */
+   Heading links are excluded from underlines but get the link colour so
+   they are visually distinct from non-linked headings. */
 .md-typeset p a,
 .md-typeset li a {
   text-decoration: underline;
   text-underline-offset: 0.15em;
+}
+
+/* Heading links inherit the heading colour by default, making them
+   indistinguishable from plain headings in light mode. Apply the link
+   colour so linked headings are clearly different from unlinked ones. */
+.md-typeset h1 a,
+.md-typeset h2 a,
+.md-typeset h3 a,
+.md-typeset h4 a,
+.md-typeset h5 a,
+.md-typeset h6 a {
+  color: var(--md-typeset-a-color);
 }
 
 /* Fix primary button — navy on near-black is invisible; use outlined style */
