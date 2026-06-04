@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block extrahead %}
+<!-- Pre-launch: prevent search engine indexing. Remove before public launch. -->
+<meta name="robots" content="noindex, nofollow">
 <!-- Matomo: load tracker only (trackPageView fires via document$ below) -->
 <script>
     var _paq = window._paq = window._paq || [];
@@ -48,8 +50,34 @@
             }
         });
 
+        /* WCAG 4.1.2: header icon-button <label> elements need aria-label.
+           title is not reliably exposed as an accessible name for interactive
+           elements by screen readers. Drawer and search have no title at all.
+           Palette labels re-set every navigation because their title flips
+           between "Switch to dark mode" and "Switch to light mode". */
+        [
+            { sel: 'label.md-header__button[for="__drawer"]', fallback: 'Open navigation' },
+            { sel: 'label.md-header__button[for="__search"]', fallback: 'Open search'     }
+        ].forEach(function (item) {
+            var el = document.querySelector(item.sel);
+            if (el) el.setAttribute('aria-label', el.getAttribute('title') || item.fallback);
+        });
+        document.querySelectorAll('label.md-header__button[for^="__palette"]').forEach(function (el) {
+            var t = el.getAttribute('title');
+            if (t) el.setAttribute('aria-label', t);
+        });
+
+        /* WCAG 1.1.1: SVGs inside labeled header controls are decorative — the
+           parent label's aria-label is the accessible name. Hide the SVGs so
+           screen readers don't announce them as unlabeled images. */
+        document.querySelectorAll(
+            '.md-header__button svg, .md-search__icon svg'
+        ).forEach(function (svg) {
+            svg.setAttribute('aria-hidden', 'true');
+        });
+
         /* WCAG 2.1.1: keyboard access for Material's label-based toggles.
-           Material for MkDocs uses <label for="__drawer"> and <label for="__nav-*">
+           Material for MkDocs uses <label for="__drawer"> and <label for="__nav_*">
            as CSS-only checkbox toggles. Labels are not keyboard-focusable by
            default, so the hamburger menu and sidebar section toggles can't be
            reached or activated without a mouse. The fix: add tabindex/role/keydown
@@ -88,7 +116,30 @@
         var drawerLabel = document.querySelector('label[for="__drawer"]');
         if (drawerLabel) patchLabelToggle(drawerLabel);
 
-        document.querySelectorAll('label[for^="__nav-"]').forEach(patchLabelToggle);
+        /* WCAG 4.1.2: the overlay backdrop is a second label[for="__drawer"] that
+           Material renders as an empty element with role="button". It has no text,
+           icon, or title, so assistive technologies have nothing to announce.
+           Adding aria-label gives it an accessible name without altering the visual. */
+        var overlay = document.querySelector('label.md-overlay[for="__drawer"]');
+        if (overlay && !overlay.getAttribute('aria-label')) {
+            overlay.setAttribute('aria-label', 'Close navigation drawer');
+        }
+
+        document.querySelectorAll('label[for^="__nav_"]').forEach(patchLabelToggle);
+
+        /* WCAG 2.1.1: scrollable nav list regions must be keyboard-reachable.
+           Safari will not auto-scroll an overflow container to reveal a focused
+           child link unless the container itself has tabindex="0". We re-evaluate
+           on every navigation because different pages expand different sections,
+           changing which lists actually overflow. Lists that no longer overflow
+           have the attribute removed so they don't create spurious tab stops. */
+        document.querySelectorAll('.md-nav__list').forEach(function (list) {
+            if (list.scrollHeight > list.clientHeight) {
+                if (!list.hasAttribute('tabindex')) list.setAttribute('tabindex', '0');
+            } else {
+                if (list.getAttribute('tabindex') === '0') list.removeAttribute('tabindex');
+            }
+        });
 
         /* WCAG 4.1.1: expose the active nav item to assistive technologies.
            Material adds md-nav__link--active but no aria-current; screen readers
@@ -198,6 +249,25 @@
                     setTabindex(false);
                 }
             });
+        }());
+
+        /* WCAG 2.4.1: validate the skip-to-content link on every page.
+           On the homepage the generated anchor (#aptrust-documentation) may not
+           exist in the rendered DOM — Material absorbs the H1 into the page
+           header rather than emitting it with an id in the content area. If the
+           target is missing, redirect the skip link to the main content wrapper
+           so keyboard and AT users can always bypass navigation. */
+        (function () {
+            var skipLink = document.querySelector('a.md-skip');
+            if (!skipLink) return;
+            var anchor = (skipLink.getAttribute('href') || '').replace(/^#/, '');
+            if (anchor && !document.getElementById(anchor)) {
+                var main = document.querySelector('.md-content__inner');
+                if (main) {
+                    if (!main.id) main.id = 'main-content';
+                    skipLink.setAttribute('href', '#main-content');
+                }
+            }
         }());
 
         document.querySelectorAll('.md-typeset a[href^="http"]').forEach(function (link) {

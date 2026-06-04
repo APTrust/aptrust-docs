@@ -64,9 +64,26 @@
   background-color: #6a1b9a;
 }
 
-/* WCAG 1.4.3 fix: inactive tab text must meet 4.5:1 contrast */
+/* WCAG 1.4.3: footer copyright text. #7f7f7f on #171717 = 4.47:1 (fails AA).
+   #828282 on #171717 = 4.67:1 ✓ */
+.md-copyright {
+  color: #828282 !important;
+}
+
+/* WCAG 2.1.1: scrollable nav list containers get tabindex="0" via JS so
+   Safari keyboard users can scroll them. Show a focus ring so the tab stop
+   is visible (WCAG 2.4.7). Inset offset keeps it inside the container. */
+.md-nav__list[tabindex="0"]:focus {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}
+
+/* WCAG 1.4.3 fix: inactive tab text must meet 4.5:1 contrast.
+   Material applies opacity: 0.7 to inactive tabs — white at 70% on #4051b5
+   gives #c6cbe9 (4.28:1, fails AA). Setting opacity: 1 keeps full white (6.86:1). */
 .md-tabs__link {
   color: rgba(255, 255, 255, 1) !important;
+  opacity: 1 !important;
 }
 
 /* ── WCAG 2.4.7 / 2.4.11: Visible keyboard focus indicators ─────── */
