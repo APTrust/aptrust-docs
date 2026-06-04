@@ -1,5 +1,5 @@
 site_name: APTrust Documentation
-site_url: https://aptrust.github.io/aptrust-docs/
+site_url: https://docs.aptrust.org
 repo_url: https://github.com/APTrust/aptrust-docs
 repo_name: APTrust/aptrust-docs
 docs_dir: docs
@@ -25,6 +25,9 @@ theme:
         name: Switch to light mode
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
     - navigation.instant
     - search.highlight
     - search.share
