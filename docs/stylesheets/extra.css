@@ -64,6 +64,14 @@
   background-color: #6a1b9a;
 }
 
+/* WCAG 1.4.1: links must be distinguishable from surrounding text by more than
+   color alone. Material removes underlines by default; indigo on near-black body
+   text only reaches 2.35:1 contrast. Underline satisfies the non-color differentiator
+   requirement without any color change. */
+.md-typeset a {
+  text-decoration: underline;
+}
+
 /* WCAG 1.4.3: footer copyright text. #7f7f7f on #171717 = 4.47:1 (fails AA).
    #828282 on #171717 = 4.67:1 ✓ */
 .md-copyright {
