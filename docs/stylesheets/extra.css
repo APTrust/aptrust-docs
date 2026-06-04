@@ -123,9 +123,39 @@
   --md-accent-bg-color--light:       rgba(255, 255, 255, 0.7);
 }
 
-/* Dark mode: lighten the accent slightly so it stays visible on dark
-   slate backgrounds (purple #5a2566 is too dark at ~2.8:1 on #1e1e2e). */
+/* ── Dark mode contrast fixes ────────────────────────────────────────
+ *
+ * Material's slate scheme sets --md-typeset-a-color independently of
+ * --md-accent-fg-color, so the accent override never reaches links.
+ * We must set both explicitly. Chosen color: #c084d0 (light purple).
+ *   #c084d0 on slate bg #1e2129 ≈ 5.9:1 — passes WCAG AA.
+ *
+ * The .md-button--primary background is --md-primary-fg-color (#13135c
+ * navy), which has ~1:1 contrast against the near-black slate background
+ * — essentially invisible. Switched to an outlined style using the light
+ * purple so the button is both visible and brand-consistent.
+ * ──────────────────────────────────────────────────────────────────── */
+
 [data-md-color-scheme="slate"][data-md-color-accent="custom"] {
   --md-accent-fg-color:              #c084d0;
   --md-accent-fg-color--transparent: rgba(192, 132, 208, 0.1);
+}
+
+/* Fix link color — must override --md-typeset-a-color directly */
+[data-md-color-scheme="slate"] {
+  --md-typeset-a-color: #c084d0;
+}
+
+/* Fix primary button — navy on near-black is invisible; use outlined style */
+[data-md-color-scheme="slate"] .md-button--primary {
+  background-color: transparent;
+  border-color: #c084d0;
+  color: #c084d0 !important;
+}
+
+[data-md-color-scheme="slate"] .md-button--primary:hover,
+[data-md-color-scheme="slate"] .md-button--primary:focus-visible {
+  background-color: rgba(192, 132, 208, 0.15);
+  border-color: #c084d0;
+  color: #c084d0 !important;
 }
