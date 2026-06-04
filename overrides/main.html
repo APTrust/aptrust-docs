@@ -193,6 +193,16 @@
                 sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
                     l.setAttribute('tabindex', open ? '0' : '-1');
                 });
+                /* WCAG 1.3.1: also hide the off-screen drawer from VoiceOver and
+                   other AT. tabindex="-1" only removes keyboard tab stops — it does
+                   not hide content from the screen-reader virtual cursor. aria-hidden
+                   suppresses the entire sidebar from AT when it is off-screen on
+                   mobile, preventing VoiceOver from announcing invisible content. */
+                if (open) {
+                    sidebar.removeAttribute('aria-hidden');
+                } else {
+                    sidebar.setAttribute('aria-hidden', 'true');
+                }
             }
 
             var trapHandler = null;
@@ -245,6 +255,7 @@
                     sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
                         l.setAttribute('tabindex', '0');
                     });
+                    sidebar.removeAttribute('aria-hidden');
                 } else if (!drawerCb.checked) {
                     setTabindex(false);
                 }
