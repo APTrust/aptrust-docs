@@ -2,7 +2,7 @@
 
 Unified documentation site for APTrust, combining four previously separate doc repos into a single site using [mkdocs-monorepo-plugin](https://github.com/backstage/mkdocs-monorepo-plugin).
 
-**Live site:** https://aptrust.github.io/aptrust-docs/
+**Live site:** https://docs.aptrust.org
 
 ---
 
