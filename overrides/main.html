@@ -101,6 +101,18 @@
             l.setAttribute('aria-current', 'page');
         });
 
+        /* WCAG 1.3.1: nav section titles (e.g. "Table of contents") are styled
+           as headings but are plain <label> elements with no heading semantics.
+           Labels without a `for` attribute are non-interactive, so role="heading"
+           is safe. Labels WITH a `for` (drawer/nav toggles) already carry
+           role="button" from patchLabelToggle and must not be changed. */
+        document.querySelectorAll('.md-nav__title:not([for])').forEach(function (el) {
+            if (!el.getAttribute('role')) {
+                el.setAttribute('role', 'heading');
+                el.setAttribute('aria-level', '2');
+            }
+        });
+
         /* WCAG 2.4.3: in mobile view the sidebar is off-screen when the drawer
            is closed — its links must be removed from the tab order so keyboard
            users don't land on invisible content. When the drawer opens, focus is
