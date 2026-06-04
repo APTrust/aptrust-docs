@@ -1,0 +1,22 @@
+{#-
+  Override of Material's copyright partial.
+  Adds dynamic copyright year and CC BY-NC 4.0 license notice.
+-#}
+<div class="md-copyright">
+  <div class="md-copyright__highlight">
+    Copyright &copy; <span id="copyright-year">2026</span> APTrust.
+    Licensed under
+    <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="license noopener" target="_blank">
+      CC BY-NC 4.0
+    </a>.
+  </div>
+  {% if not config.extra.generator == false %}
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  {% endif %}
+</div>
+<script>
+  document.getElementById('copyright-year').textContent = new Date().getFullYear();
+</script>
