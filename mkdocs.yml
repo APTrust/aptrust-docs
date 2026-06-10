@@ -34,6 +34,7 @@ theme:
 plugins:
   - search
   - monorepo
+  - swagger-ui-tag
 
 markdown_extensions:
   - attr_list
@@ -65,5 +66,6 @@ nav:
   - DART: '!include ./repos/dart/mkdocs.yml'
   - Preservation Services: '!include ./repos/preserv/mkdocs.yml'
   - Registry: '!include ./repos/registry/mkdocs.yml'
+  - API: api.md
   - Other Documentation: documentation.md
   - Policies: policies.md

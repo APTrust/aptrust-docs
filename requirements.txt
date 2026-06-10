@@ -6,3 +6,4 @@ markdown-include
 pygments
 mkdocs-redirects
 fontawesome-markdown
+mkdocs-swagger-ui-tag
