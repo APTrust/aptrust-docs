@@ -113,16 +113,30 @@
             });
         }
 
-        var drawerLabel = document.querySelector('label[for="__drawer"]');
+        /* Target the header hamburger specifically — querySelector returns the
+           md-overlay label first in Material's DOM order, which would attach
+           role="button" to a <label>, an invalid ARIA combination. */
+        var drawerLabel = document.querySelector('label.md-header__button[for="__drawer"]');
         if (drawerLabel) patchLabelToggle(drawerLabel);
 
-        /* WCAG 4.1.2: the overlay backdrop is a second label[for="__drawer"] that
-           Material renders as an empty element with role="button". It has no text,
-           icon, or title, so assistive technologies have nothing to announce.
-           Adding aria-label gives it an accessible name without altering the visual. */
+        /* WCAG 2.1.1 / 4.1.2: the overlay backdrop is a separate label[for="__drawer"]
+           that closes the drawer when activated. The ARIA in HTML spec does not allow
+           any role on <label>, so we add only tabindex + aria-label + keydown — no
+           role attribute. */
         var overlay = document.querySelector('label.md-overlay[for="__drawer"]');
-        if (overlay && !overlay.getAttribute('aria-label')) {
+        if (overlay && !overlay.dataset.kbPatched) {
+            overlay.dataset.kbPatched = '1';
+            overlay.setAttribute('tabindex', '0');
             overlay.setAttribute('aria-label', 'Close navigation drawer');
+            var overlayCb = document.getElementById('__drawer');
+            if (overlayCb) {
+                overlay.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        overlayCb.click();
+                    }
+                });
+            }
         }
 
         document.querySelectorAll('label[for^="__nav_"]').forEach(patchLabelToggle);
@@ -286,6 +300,12 @@
                 }
             }
         }());
+
+        /* WCAG 4.1.2: the swagger-ui-tag plugin renders iframes without a title,
+           making them opaque to screen readers. */
+        document.querySelectorAll('iframe.swagger-ui-iframe:not([title])').forEach(function (iframe) {
+            iframe.setAttribute('title', 'APTrust Member API Reference');
+        });
 
         document.querySelectorAll('.md-typeset a[href^="http"]').forEach(function (link) {
             /* Skip links that point to this same site */
