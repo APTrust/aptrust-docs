@@ -92,9 +92,10 @@
                HTML spec — omit it. tabindex + aria-label + keydown preserve full
                keyboard operability without the invalid role. */
             if (cb) {
-                label.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
-                /* WCAG 4.1.2: aria-controls associates this toggle with the
-                   nav section it shows/hides, satisfying Custom Controls. */
+                /* aria-expanded is not a global ARIA attribute — it is only valid
+                   on elements with specific roles (button, combobox, etc.). Since
+                   <label> cannot carry a role, aria-expanded is also disallowed.
+                   aria-controls IS a global attribute and is safe to keep. */
                 var navEl = label.parentElement && (
                     label.parentElement.querySelector(':scope > nav.md-nav') ||
                     label.parentElement.querySelector(':scope > ul.md-nav__list')
@@ -103,9 +104,6 @@
                     if (!navEl.id) navEl.id = label.getAttribute('for') + '-content';
                     label.setAttribute('aria-controls', navEl.id);
                 }
-                cb.addEventListener('change', function () {
-                    label.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
-                });
             }
             label.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' || e.key === ' ') {
