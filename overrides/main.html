@@ -88,7 +88,9 @@
             label.dataset.kbPatched = '1';
             var cb = document.getElementById(label.getAttribute('for'));
             label.setAttribute('tabindex', '0');
-            label.setAttribute('role', 'button');
+            /* role="button" is not a valid ARIA role on <label> per the ARIA in
+               HTML spec — omit it. tabindex + aria-label + keydown preserve full
+               keyboard operability without the invalid role. */
             if (cb) {
                 label.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
                 /* WCAG 4.1.2: aria-controls associates this toggle with the
@@ -168,7 +170,7 @@
 
         /* WCAG 1.3.1: nav and TOC section titles are visually styled as headings
            but lack heading semantics. The primary-nav drawer toggle (for="__drawer")
-           already carries role="button" from patchLabelToggle and is excluded.
+           is excluded because it is an interactive toggle, not a section heading.
            All other .md-nav__title elements — including the TOC title (for="__toc")
            — get role="heading". Any non-navigating <a> inside them (href="#" or no
            href) is suppressed so it doesn't announce as "Clickable" to screen

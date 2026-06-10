@@ -17,6 +17,12 @@ This repo contains only the scaffolding for the unified site. It does not contai
 | Preservation Services | [APTrust/preserv-docs](https://github.com/APTrust/preserv-docs) | `/preservation-services-docs/` |
 | Registry | [APTrust/registry-docs](https://github.com/APTrust/registry-docs) | `/registry-docs/` |
 
+One tab is a direct content page that lives in `docs/` in this repo:
+
+| Tab | File | Notes |
+|---|---|---|
+| API | `docs/api.md` | Embeds the Member API v3 OpenAPI spec via Swagger UI (`mkdocs-swagger-ui-tag`) |
+
 Two additional tabs are bridge pages — they live in `docs/` in this repo and link out to content on the APTrust website:
 
 | Tab | File | Links to |
@@ -31,10 +37,14 @@ mkdocs.yml          # Root MkDocs config — theme, plugins, nav with !include e
 requirements.txt    # Python dependencies for building the site
 docs/
 ├── index.md              # Landing page
+├── api.md                # Member API v3 interactive reference (Swagger UI)
 ├── documentation.md      # Bridge page → aptrust.org/documentation/
 ├── policies.md           # Bridge page → aptrust.org/resources/policies/
 └── stylesheets/
-    └── extra.css         # Search result site-label badges
+    └── extra.css         # Search result site-label badges, external link indicators
+overrides/
+├── main.html             # Theme extension — Matomo analytics, WCAG 2.2 AA patches
+└── partials/             # Overridden template partials
 .github/
 └── workflows/
     └── build-and-deploy.yml
@@ -85,6 +95,12 @@ mkdocs build     # write static site to ./site/
 2. Add a matching `git clone` line to the Clone step in `.github/workflows/build-and-deploy.yml`.
 3. Add `notify-parent-docs.yml` to the new sub-repo and configure `DOCS_DISPATCH_TOKEN` in its secrets.
 4. Add a badge selector to `docs/stylesheets/extra.css` so search results show the section label.
+
+## Adding a Swagger/API page
+
+1. Add the OpenAPI spec URL to a new markdown file in `docs/` using the `<swagger-ui src="..."/>` tag.
+2. Add it to the `nav:` block in `mkdocs.yml`.
+3. The `mkdocs-swagger-ui-tag` plugin (already in `requirements.txt`) handles the rest.
 
 ## Adding a bridge page
 
