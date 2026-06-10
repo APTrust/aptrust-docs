@@ -21,7 +21,7 @@ The organization aims to surpass minimum accessibility standards by ensuring pra
 For access issues or feedback, contact APTrust:
 
 - **Phone:** 434-928-0042
-- **Email:** [info@aptrust.org](mailto:info@aptrust.org)
+- **Email:** [help@aptrust.org](mailto:help@aptrust.org)
 
 The team prioritizes user experience and welcomes all feedback.
 
