@@ -179,22 +179,35 @@
   outline-offset: -2px;
 }
 
-/* ── Swagger UI iframe: mobile scroll fix ───────────────────────────
+/* ── Swagger UI iframe: scroll fix (all viewports) ──────────────────
  *
  * The mkdocs-swagger-ui-tag plugin renders a full-height iframe
- * (~4 000 px) with overflow:hidden set as inline styles. On narrow
- * viewports, touch events are captured by the iframe's own document,
- * so the page appears frozen. Capping the iframe at the available
- * viewport height and enabling internal scrolling restores usability.
+ * (~4 000 px) with overflow:hidden set as inline styles. This causes
+ * two problems:
+ *
+ *   Desktop: the inflated page height makes the left sidebar
+ *   scrollable. Material's instant navigation preserves that layout
+ *   state on subsequent pages, leaving a ghost scrollbar track between
+ *   the sidebar and content until a hard refresh.
+ *
+ *   Mobile: touch events are captured by the iframe's own document,
+ *   so the page appears frozen.
+ *
+ * Capping the iframe at viewport height on all viewports prevents the
+ * page from ever reaching 4 000 px, eliminating both problems.
  * !important beats the plugin's inline overflow:hidden.
  *
- * 59.9375em = 959px, the breakpoint below which Material hides the
- * tab bar and shows only the sticky header (~3rem / 48px tall).
+ * The mobile block adds the svh unit (accounts for browser chrome) and
+ * the legacy webkit touch-scroll property.
  * ──────────────────────────────────────────────────────────────────── */
+iframe.swagger-ui-iframe {
+  max-height: calc(100vh - 3.5rem);
+  overflow-y: auto !important;
+}
+
 @media screen and (max-width: 59.9375em) {
   iframe.swagger-ui-iframe {
     max-height: calc(100svh - 3.2rem);
-    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
 }
