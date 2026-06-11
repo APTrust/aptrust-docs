@@ -1,0 +1,234 @@
+/* ── Search result site labels ─────────────────────────────────────────────────
+ *
+ * Material for MkDocs renders each result item as:
+ *
+ *   <li class="md-search-result__item">
+ *     <!-- Page-title row (icon + title) — we skip this one -->
+ *     <a href="...">
+ *       <article class="md-search-result__article md-search-result__article--document">
+ *         <div class="md-search-result__icon">…</div>
+ *         <h1>Page Title</h1>
+ *       </article>
+ *     </a>
+ *     <!-- Section match(es) — badge goes here -->
+ *     <a href="...#section">
+ *       <article class="md-search-result__article">
+ *         <h1>Section Heading</h1>
+ *         <p>Excerpt…</p>
+ *       </article>
+ *     </a>
+ *   </li>
+ *
+ * :not(.md-search-result__article--document) targets only the section articles,
+ * not the page-title row. Without this, a second badge appears in the gap before
+ * the page title, which looks like a floating label between result items.
+ *
+ * If URL namespaces change, update the four href patterns below.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* Shared badge appearance — section articles only */
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  display: inline-block;
+  margin-top: 0.8em !important;
+  padding: 0.1em 0.45em;
+  border-radius: 0.15em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  color: #fff;
+}
+
+/* Per-section label text and colour */
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "User Guide";
+  background-color: #1565c0;
+}
+
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "DART";
+  background-color: #2e7d32;
+}
+
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "Preservation Services";
+  background-color: #b71c1c;
+}
+
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "Registry";
+  background-color: #6a1b9a;
+}
+
+/* WCAG 1.4.1: links must be distinguishable from surrounding text by more than
+   color alone. Material removes underlines by default; indigo on near-black body
+   text only reaches 2.35:1 contrast. Underline satisfies the non-color differentiator
+   requirement without any color change. */
+.md-typeset a {
+  text-decoration: underline;
+}
+
+/* WCAG 1.4.3: footer copyright text. #7f7f7f on #171717 = 4.47:1 (fails AA).
+   #828282 on #171717 = 4.67:1 ✓ */
+.md-copyright {
+  color: #828282 !important;
+}
+
+/* WCAG 2.1.1: scrollable nav list containers get tabindex="0" via JS so
+   Safari keyboard users can scroll them. Show a focus ring so the tab stop
+   is visible (WCAG 2.4.7). Inset offset keeps it inside the container. */
+.md-nav__list[tabindex="0"]:focus {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}
+
+/* WCAG 1.4.3 fix: inactive tab text must meet 4.5:1 contrast.
+   Material applies opacity: 0.7 to inactive tabs — white at 70% on #4051b5
+   gives #c6cbe9 (4.28:1, fails AA). Setting opacity: 1 keeps full white (6.86:1). */
+.md-tabs__link {
+  color: rgba(255, 255, 255, 1) !important;
+  opacity: 1 !important;
+}
+
+/* ── WCAG 2.4.7 / 2.4.11: Visible keyboard focus indicators ─────── */
+
+/* Default focus style for all interactive elements in body content.
+   Yellow #FFD600 on white gives 13:1 contrast — well above the 3:1
+   minimum required for UI component focus indicators (WCAG 1.4.11). */
+:focus-visible {
+  outline: 2px solid #FFD600 !important;
+  outline-offset: 2px !important;
+}
+
+/* Override for elements on the dark blue header (#4051b5 background).
+   White outline gives 6.86:1 contrast against the header background. */
+.md-header :focus-visible,
+.md-tabs__link:focus-visible {
+  outline: 2px solid #ffffff !important;
+  outline-offset: 3px !important;
+}
+
+/* Sidebar nav links appear on a white background — use the yellow
+   focus ring here too. */
+.md-nav__link:focus-visible {
+  outline: 2px solid #FFD600 !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure focused items are not hidden behind the sticky header.
+   80px accounts for the header + tab bar height. */
+:focus-visible {
+  scroll-margin-top: 80px;
+}
+
+/* ── New-tab link indicators (WCAG 3.2.2) ───────────────────────────
+ *
+ * .sr-only — standard visually-hidden pattern. Text is announced by
+ *   screen readers but takes up no visible space.
+ *
+ * a[target="_blank"]::after — small ↗ icon appended after the link
+ *   text so sighted users also see that the link opens a new tab.
+ *   aria-hidden is not settable via CSS, but the JS-injected .sr-only
+ *   span already covers the screen-reader announcement, so the icon
+ *   is intentionally decorative and redundant for AT users.
+ * ──────────────────────────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.md-typeset a[target="_blank"]:not(.md-button)::after {
+  content: " \2197";  /* ↗ NORTH EAST ARROW — Unicode escape avoids charset parse issues */
+  font-size: 0.75em;
+  vertical-align: super;
+  opacity: 0.7;
+}
+
+/* VoiceOver / mobile drawer: the sidebar has a white background at all
+   viewport widths. Material sets .md-nav__link colors to
+   --md-primary-fg-color (white for indigo), making every link in the open
+   drawer invisible against that white background. Fix applies to all levels —
+   top-level section links AND nested sub-menu links. The drawer title
+   (.md-nav__title on .md-nav--primary) intentionally keeps its indigo
+   background + white text; only .md-nav__link elements are overridden. */
+.md-sidebar--primary .md-nav__link {
+  color: var(--md-default-fg-color) !important;
+}
+
+/* Section back-buttons inside nested panels also need dark text/white bg. */
+.md-nav--primary .md-nav > .md-nav__title {
+  background-color: var(--md-default-bg-color) !important;
+  color: var(--md-default-fg-color) !important;
+}
+
+/* All sidebar links sit on a white background — yellow focus ring throughout. */
+.md-sidebar--primary .md-nav__link:focus {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}
+
+/* ── Swagger UI iframe: mobile scroll fix ───────────────────────────
+ *
+ * The mkdocs-swagger-ui-tag plugin renders a full-height iframe
+ * (~4 000 px) with overflow:hidden as inline styles. On mobile,
+ * touch events are captured by the iframe's own document so the page
+ * appears frozen. Capping the iframe to viewport height and allowing
+ * internal scroll restores usability. !important overrides the inline
+ * overflow:hidden.
+ *
+ * Desktop is intentionally excluded: overflow on a replaced element
+ * like <iframe> does not scroll the iframe's internal document — it
+ * only clips the element, cutting off content with no way to reach it.
+ * On desktop the page scrolls naturally at its full 4 000 px height.
+ *
+ * 59.9375em = 959px — Material's breakpoint below which the tab bar
+ * is hidden and only the sticky header (~3rem) remains.
+ * ──────────────────────────────────────────────────────────────────── */
+@media screen and (max-width: 59.9375em) {
+  iframe.swagger-ui-iframe {
+    max-height: calc(100svh - 3.2rem);
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Sidebar scrollbar ghost line fix ───────────────────────────────
+ *
+ * The API page's 4 000 px iframe makes the page tall enough that the
+ * left sidebar scroll wrapper gains a scrollable overflow. Material's
+ * instant navigation preserves this state across navigations, leaving
+ * a gray scrollbar track between the sidebar and content on subsequent
+ * pages until a hard refresh. Hiding the track removes the artifact;
+ * the sidebar remains scrollable via wheel and keyboard.
+ * ──────────────────────────────────────────────────────────────────── */
+.md-sidebar--primary .md-sidebar__scrollwrap {
+  scrollbar-width: none;
+}
+.md-sidebar--primary .md-sidebar__scrollwrap::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile drawer: show full navigation.
+   On desktop, .md-nav--lifted hides all top-level nav items except the active
+   section because the tab bar handles top-level navigation. On mobile the tab
+   bar is display:none, so the hamburger drawer is the ONLY navigation path.
+   Without this fix the drawer shows only the current section (or nothing on the
+   homepage), leaving keyboard and VoiceOver users unable to reach other sections.
+   The active section keeps its sticky-label treatment from Material's CSS. */
+@media screen and (max-width: 76.234375em) {
+  .md-nav--primary.md-nav--lifted > .md-nav__list > .md-nav__item {
+    display: block !important;
+  }
+}
