@@ -9,4 +9,4 @@ Interactive reference for the APTrust Member REST API v3. Use the interface belo
 
 For narrative documentation on authentication, workflows, and usage patterns, see the [User Guide REST API section](/user-guide/api/).
 
-<swagger-ui src="https://raw.githubusercontent.com/APTrust/registry/master/member_api_v3.yml"/>
+<swagger-ui src="../member_api_v3.yml"/>

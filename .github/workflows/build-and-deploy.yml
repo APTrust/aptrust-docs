@@ -136,7 +136,24 @@ jobs:
           git clone --depth 1 https://github.com/APTrust/dart-docs      repos/dart
           git clone --depth 1 https://github.com/APTrust/userguide      repos/userguide
 
-      # ── Step 4: Set up Python ───────────────────────────────────────────────
+      # ── Step 4: Refresh API spec ────────────────────────────────────────────
+      #
+      # The Member API v3 OpenAPI spec is committed to docs/ to avoid a
+      # cross-origin fetch at render time, but that committed copy goes stale
+      # whenever the registry repo updates the spec. This step overwrites it with
+      # the latest version from the registry master branch on every build, so the
+      # deployed site always reflects the current API without any manual copy step.
+      #
+      # The spec lives at the root of APTrust/registry (not in registry-docs).
+      # registry-docs is already cloned above, but it does not contain the spec
+      # file, so we fetch it directly with curl rather than copying from repos/.
+      #
+      - name: Refresh API spec from registry repo
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/APTrust/registry/master/member_api_v3.yml \
+            -o docs/member_api_v3.yml
+
+      # ── Step 6: Set up Python ───────────────────────────────────────────────
       #
       # 3.12 matches the .python-version pin in dart-docs and registry-docs.
       # cache: pip caches the pip download cache between runs using the hash of
@@ -149,7 +166,7 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
-      # ── Step 5: Install dependencies ────────────────────────────────────────
+      # ── Step 7: Install dependencies ────────────────────────────────────────
       #
       # Installs everything in requirements.txt: mkdocs, mkdocs-material,
       # mkdocs-monorepo-plugin, pymdown-extensions, markdown-include, pygments,
@@ -158,7 +175,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      # ── Step 6: Build the documentation site ────────────────────────────────
+      # ── Step 8: Build the documentation site ────────────────────────────────
       #
       # mkdocs reads the root mkdocs.yml. The mkdocs-monorepo-plugin resolves
       # the four !include directives in the nav section: it reads each sub-repo's
@@ -177,7 +194,7 @@ jobs:
       - name: Build documentation site
         run: mkdocs build
 
-      # ── Step 7: Deploy to GitHub Pages ──────────────────────────────────────
+      # ── Step 9: Deploy to GitHub Pages ──────────────────────────────────────
       #
       # peaceiris/actions-gh-pages pushes the contents of ./site/ to the
       # gh-pages branch of this repository. GitHub Pages then serves that branch

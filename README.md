@@ -38,6 +38,7 @@ requirements.txt    # Python dependencies for building the site
 docs/
 ├── index.md              # Landing page
 ├── api.md                # Member API v3 interactive reference (Swagger UI)
+├── member_api_v3.yml     # OpenAPI spec — auto-refreshed from registry repo on every build
 ├── documentation.md      # Bridge page → aptrust.org/documentation/
 ├── policies.md           # Bridge page → aptrust.org/resources/policies/
 └── stylesheets/
@@ -98,9 +99,13 @@ mkdocs build     # write static site to ./site/
 
 ## Adding a Swagger/API page
 
-1. Add the OpenAPI spec URL to a new markdown file in `docs/` using the `<swagger-ui src="..."/>` tag.
-2. Add it to the `nav:` block in `mkdocs.yml`.
-3. The `mkdocs-swagger-ui-tag` plugin (already in `requirements.txt`) handles the rest.
+1. Copy the OpenAPI spec file into `docs/` (serving it locally avoids cross-origin fetch errors).
+2. Add the markdown file in `docs/` using the `<swagger-ui src="../your-spec.yml"/>` tag.
+3. Add it to the `nav:` block in `mkdocs.yml`.
+4. The `mkdocs-swagger-ui-tag` plugin (already in `requirements.txt`) handles the rest.
+5. If the spec is hosted in another repo, add a `curl` step to the build workflow (see Step 4 in `build-and-deploy.yml`) to pull the latest version on every build.
+
+The `member_api_v3.yml` spec is refreshed automatically on every build — no manual update needed. The copy committed in `docs/` is only used when running `mkdocs serve` locally without internet access.
 
 ## Adding a bridge page
 
