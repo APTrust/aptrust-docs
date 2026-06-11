@@ -179,37 +179,45 @@
   outline-offset: -2px;
 }
 
-/* ── Swagger UI iframe: scroll fix (all viewports) ──────────────────
+/* ── Swagger UI iframe: mobile scroll fix ───────────────────────────
  *
  * The mkdocs-swagger-ui-tag plugin renders a full-height iframe
- * (~4 000 px) with overflow:hidden set as inline styles. This causes
- * two problems:
+ * (~4 000 px) with overflow:hidden as inline styles. On mobile,
+ * touch events are captured by the iframe's own document so the page
+ * appears frozen. Capping the iframe to viewport height and allowing
+ * internal scroll restores usability. !important overrides the inline
+ * overflow:hidden.
  *
- *   Desktop: the inflated page height makes the left sidebar
- *   scrollable. Material's instant navigation preserves that layout
- *   state on subsequent pages, leaving a ghost scrollbar track between
- *   the sidebar and content until a hard refresh.
+ * Desktop is intentionally excluded: overflow on a replaced element
+ * like <iframe> does not scroll the iframe's internal document — it
+ * only clips the element, cutting off content with no way to reach it.
+ * On desktop the page scrolls naturally at its full 4 000 px height.
  *
- *   Mobile: touch events are captured by the iframe's own document,
- *   so the page appears frozen.
- *
- * Capping the iframe at viewport height on all viewports prevents the
- * page from ever reaching 4 000 px, eliminating both problems.
- * !important beats the plugin's inline overflow:hidden.
- *
- * The mobile block adds the svh unit (accounts for browser chrome) and
- * the legacy webkit touch-scroll property.
+ * 59.9375em = 959px — Material's breakpoint below which the tab bar
+ * is hidden and only the sticky header (~3rem) remains.
  * ──────────────────────────────────────────────────────────────────── */
-iframe.swagger-ui-iframe {
-  max-height: calc(100vh - 3.5rem);
-  overflow-y: auto !important;
-}
-
 @media screen and (max-width: 59.9375em) {
   iframe.swagger-ui-iframe {
     max-height: calc(100svh - 3.2rem);
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* ── Sidebar scrollbar ghost line fix ───────────────────────────────
+ *
+ * The API page's 4 000 px iframe makes the page tall enough that the
+ * left sidebar scroll wrapper gains a scrollable overflow. Material's
+ * instant navigation preserves this state across navigations, leaving
+ * a gray scrollbar track between the sidebar and content on subsequent
+ * pages until a hard refresh. Hiding the track removes the artifact;
+ * the sidebar remains scrollable via wheel and keyboard.
+ * ──────────────────────────────────────────────────────────────────── */
+.md-sidebar--primary .md-sidebar__scrollwrap {
+  scrollbar-width: none;
+}
+.md-sidebar--primary .md-sidebar__scrollwrap::-webkit-scrollbar {
+  display: none;
 }
 
 /* Mobile drawer: show full navigation.
