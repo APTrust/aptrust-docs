@@ -69,7 +69,7 @@ The build-and-deploy workflow runs on three triggers:
 
 1. **Push to `main` in this repo** — for changes to the landing page, bridge pages, `mkdocs.yml`, or `requirements.txt`.
 
-2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a secret named `DOCS_DISPATCH_TOKEN` in each sub-repo: a fine-grained PAT with **Actions: write** permission on this repo (`APTrust/aptrust-docs`).
+2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a secret named `DOCS_DISPATCH_TOKEN` in each sub-repo: a fine-grained PAT with **Contents: Read and write** permission on this repo (`APTrust/aptrust-docs`).
 
 3. **Manual run** — from the Actions tab → Build and Deploy Documentation → Run workflow.
 
