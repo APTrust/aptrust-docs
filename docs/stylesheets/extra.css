@@ -259,3 +259,53 @@
     display: block !important;
   }
 }
+
+/* ── WCAG 1.4.11: collapsible admonition arrow contrast ─────────────
+ *
+ * Material colors the expand/collapse chevron (details/summary::after)
+ * with each admonition type's stock accent color at full strength. In
+ * light mode that color sits on the same color's 10%-tint header
+ * background, and 9 of the 12 types land under the 3:1 minimum for UI
+ * components (as low as 1.66:1 for "question"). Only the ::after arrow
+ * is touched here — it's the interactive control; the ::before type
+ * icon is decorative and uses a separate background-color rule.
+ * Darkened values keep each type's hue but clear 3:1 in light mode
+ * (verified down to the specific tinted background, not just page
+ * white) while staying comfortably above 3:1 in dark mode too.
+ * danger, bug, and example already pass and are left untouched. */
+.md-typeset .note > .admonition-title::after,
+.md-typeset .note > summary::after {
+  color: #4082f1;
+}
+.md-typeset .abstract > .admonition-title::after,
+.md-typeset .abstract > summary::after {
+  color: #008ccc;
+}
+.md-typeset .info > .admonition-title::after,
+.md-typeset .info > summary::after {
+  color: #0091a8;
+}
+.md-typeset .tip > .admonition-title::after,
+.md-typeset .tip > summary::after {
+  color: #009581;
+}
+.md-typeset .success > .admonition-title::after,
+.md-typeset .success > summary::after {
+  color: #009940;
+}
+.md-typeset .question > .admonition-title::after,
+.md-typeset .question > summary::after {
+  color: #449710;
+}
+.md-typeset .warning > .admonition-title::after,
+.md-typeset .warning > summary::after {
+  color: #c47000;
+}
+.md-typeset .failure > .admonition-title::after,
+.md-typeset .failure > summary::after {
+  color: #ea4b4b;
+}
+.md-typeset .quote > .admonition-title::after,
+.md-typeset .quote > summary::after {
+  color: #858585;
+}
