@@ -1,7 +1,8 @@
+# repo_url / repo_name intentionally omitted: Material's header repo widget
+# (icon + name + star/fork counts) is not accessible to screen readers and
+# provided no value to doc readers, so it was removed rather than patched.
 site_name: APTrust Documentation
 site_url: https://docs.aptrust.org/
-repo_url: https://github.com/APTrust/aptrust-docs
-repo_name: APTrust/aptrust-docs
 docs_dir: docs
 
 extra_css:
