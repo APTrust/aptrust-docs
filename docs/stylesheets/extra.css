@@ -179,6 +179,33 @@
   outline-offset: -2px;
 }
 
+/* WCAG 2.1.1: visible, keyboard-operable close control for the mobile
+   nav drawer (see overrides/main.html close-button injection). Hidden on
+   desktop where the sidebar is a permanent, non-modal panel. */
+.md-nav__close-button {
+  display: none;
+}
+@media screen and (max-width: 76.234375em) {
+  .md-nav__close-button {
+    display: block;
+    width: calc(100% - 1.2rem);
+    margin: 0.4rem 0.6rem;
+    padding: 0.4rem 0.8rem;
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+    border: none;
+    border-radius: 0.1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+  }
+  .md-nav__close-button:focus-visible {
+    outline: 2px solid #FFD600;
+    outline-offset: 2px;
+  }
+}
+
 /* ── Swagger UI iframe: mobile scroll fix ───────────────────────────
  *
  * The mkdocs-swagger-ui-tag plugin renders a full-height iframe

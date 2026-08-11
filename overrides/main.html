@@ -137,6 +137,27 @@
 
         document.querySelectorAll('label[for^="__nav_"]').forEach(patchLabelToggle);
 
+        /* WCAG 2.1.1: the overlay backdrop can close the drawer but lives
+           outside .md-sidebar--primary, so it's unreachable by Tab from
+           inside the focus trap below. Add a real, visible <button> inside
+           the sidebar so keyboard and AT users always have an in-trap way
+           to close the drawer. */
+        (function () {
+            var title = document.querySelector('.md-sidebar--primary .md-nav__title[for="__drawer"]');
+            if (!title || title.dataset.closeBtnInjected) return;
+            title.dataset.closeBtnInjected = '1';
+            var closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'md-nav__close-button';
+            closeBtn.setAttribute('aria-label', 'Close navigation menu');
+            closeBtn.textContent = 'Close';
+            closeBtn.addEventListener('click', function () {
+                var cb = document.getElementById('__drawer');
+                if (cb) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+            });
+            title.insertAdjacentElement('afterend', closeBtn);
+        }());
+
         /* WCAG 2.1.1: scrollable nav list regions must be keyboard-reachable.
            Safari will not auto-scroll an overflow container to reveal a focused
            child link unless the container itself has tabindex="0". We re-evaluate
@@ -163,16 +184,20 @@
         });
 
         /* WCAG 1.3.1: nav and TOC section titles are visually styled as headings
-           but lack heading semantics. The primary-nav drawer toggle (for="__drawer")
-           is excluded because it is an interactive toggle, not a section heading.
-           All other .md-nav__title elements — including the TOC title (for="__toc")
-           — get role="heading". Any non-navigating <a> inside them (href="#" or no
-           href) is suppressed so it doesn't announce as "Clickable" to screen
-           readers without sending users anywhere. */
-        document.querySelectorAll('.md-nav__title:not([for="__drawer"])').forEach(function (el) {
+           but lack heading semantics. Every .md-nav__title gets role="heading" —
+           the drawer title (for="__drawer") is the site title, so it gets
+           aria-level="1"; nested section/TOC titles get aria-level="2". The
+           drawer title's own close-toggle behaviour is now handled by the
+           dedicated Close button injected above, so it no longer needs to
+           double as an unlabeled interactive control here. Any non-navigating
+           <a> inside a title (href="#" or no href) is suppressed so it doesn't
+           announce as "Clickable" to screen readers without sending users
+           anywhere — the drawer title's logo link has a real href, so it is
+           unaffected and stays a normal focusable link. */
+        document.querySelectorAll('.md-nav__title').forEach(function (el) {
             if (!el.getAttribute('role')) {
                 el.setAttribute('role', 'heading');
-                el.setAttribute('aria-level', '2');
+                el.setAttribute('aria-level', el.getAttribute('for') === '__drawer' ? '1' : '2');
             }
             el.querySelectorAll('a[href="#"], a:not([href])').forEach(function (a) {
                 a.setAttribute('role', 'presentation');
@@ -186,17 +211,39 @@
            users don't land on invisible content. When the drawer opens, focus is
            moved inside and trapped until the user closes it (matching modal dialog
            behaviour). The IIFE + dataset.trapSetup guard ensures the change and
-           resize listeners are attached only once across instant navigations. */
+           matchMedia listeners are attached only once across instant navigations.
+           #__drawer and its <label> live outside Material's instant-navigation
+           container and are never replaced, so trapSetup (stored on drawerCb) is
+           a reliable one-time guard — but .md-sidebar--primary IS inside that
+           container and gets fully replaced on every in-app navigation, so it
+           must always be looked up live via getSidebar() rather than captured
+           in a closure (a stale reference silently breaks the trap after the
+           first navigation, letting focus escape to the header search). */
         (function () {
-            var drawerCb  = document.getElementById('__drawer');
-            var sidebar   = document.querySelector('.md-sidebar--primary');
-            var dLabel    = document.querySelector('label[for="__drawer"]');
-            if (!drawerCb || !sidebar || drawerCb.dataset.trapSetup) return;
+            var drawerCb = document.getElementById('__drawer');
+            /* Target the header hamburger specifically — querySelector would
+               otherwise return the md-overlay label first in Material's DOM
+               order, which is hidden (offsetParent null) whenever the drawer
+               is closed, sending focus to an invisible element on close. */
+            var dLabel = document.querySelector('label.md-header__button[for="__drawer"]');
+            if (!drawerCb || !document.querySelector('.md-sidebar--primary') || drawerCb.dataset.trapSetup) return;
             drawerCb.dataset.trapSetup = '1';
 
-            function isMobile() { return window.innerWidth < 960; }
+            function getSidebar() { return document.querySelector('.md-sidebar--primary'); }
+
+            /* WCAG 2.4.3 / 1.4.10: match Material's actual CSS breakpoint for
+               collapsing the sidebar into the off-canvas drawer (76.234375em,
+               also used in extra.css) via matchMedia rather than a hardcoded
+               window.innerWidth pixel check. innerWidth doesn't always shrink
+               the way em-based media queries do under browser zoom, which let
+               the sidebar stay focusable/AT-visible while visually off-screen
+               at some zoomed/resized widths. */
+            var mobileMql = window.matchMedia('(max-width: 76.234375em)');
+            function isMobile() { return mobileMql.matches; }
 
             function setTabindex(open) {
+                var sidebar = getSidebar();
+                if (!sidebar) return;
                 sidebar.querySelectorAll('a, button').forEach(function (el) {
                     open ? el.removeAttribute('tabindex') : el.setAttribute('tabindex', '-1');
                 });
@@ -220,7 +267,18 @@
             function activateTrap() {
                 setTabindex(true);
                 trapHandler = function (e) {
+                    /* WCAG 2.1.1 best practice: Escape closes the dialog and
+                       returns focus to the triggering element, same as the
+                       overlay/Close-button path. */
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        drawerCb.checked = false;
+                        drawerCb.dispatchEvent(new Event('change'));
+                        return;
+                    }
                     if (e.key !== 'Tab') return;
+                    var sidebar = getSidebar();
+                    if (!sidebar) return;
                     var f = Array.from(sidebar.querySelectorAll(
                         'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
                     )).filter(function (el) { return el.offsetParent !== null; });
@@ -237,6 +295,8 @@
                    an element that is still off-screen (left:-12.1rem + translateX
                    animating), which confuses VoiceOver's visual cursor. */
                 setTimeout(function () {
+                    var sidebar = getSidebar();
+                    if (!sidebar) return;
                     var focusable = Array.from(sidebar.querySelectorAll(
                         'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
                     )).filter(function (el) { return el.offsetParent !== null; });
@@ -259,19 +319,22 @@
                 if (isMobile()) { drawerCb.checked ? activateTrap() : deactivateTrap(); }
             });
 
-            window.addEventListener('resize', function () {
-                if (!isMobile()) {
+            mobileMql.addEventListener('change', function (e) {
+                if (!e.matches) {
                     if (trapHandler) {
                         document.removeEventListener('keydown', trapHandler);
                         trapHandler = null;
                     }
-                    sidebar.querySelectorAll('[tabindex="-1"]').forEach(function (el) {
-                        el.removeAttribute('tabindex');
-                    });
-                    sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
-                        l.setAttribute('tabindex', '0');
-                    });
-                    sidebar.removeAttribute('aria-hidden');
+                    var sidebar = getSidebar();
+                    if (sidebar) {
+                        sidebar.querySelectorAll('[tabindex="-1"]').forEach(function (el) {
+                            el.removeAttribute('tabindex');
+                        });
+                        sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
+                            l.setAttribute('tabindex', '0');
+                        });
+                        sidebar.removeAttribute('aria-hidden');
+                    }
                 } else if (!drawerCb.checked) {
                     setTabindex(false);
                 }
