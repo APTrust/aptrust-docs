@@ -23,8 +23,6 @@ substantial section and covers three audit areas in detail:
 ## Software Documentation
 
 Overview documentation for DART, Registry, Partner Tools, and Preservation Services.
-This content overlaps with the dedicated tabs in this site — refer to the tabs above
-for the most current and detailed version.
 
 ## Technical Documentation
 
