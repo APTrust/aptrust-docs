@@ -309,3 +309,18 @@
 .md-typeset .quote > summary::after {
   color: #858585;
 }
+
+/* WCAG 1.4.3: code block punctuation/operator/comment/variable/generic
+ * tokens (Pygments classes .p .o .ow .c* .gp etc.) inherit
+ * --md-default-fg-color--light, which is #0000008a (54% black). Against
+ * the code block background (--md-code-bg-color: #f5f5f5) that only
+ * reaches 4.47:1, just under the 4.5:1 AA minimum for regular text.
+ * Scoped to the light/default scheme only — slate's equivalent variable
+ * already passes against its darker code background, so it's left alone. */
+[data-md-color-scheme="default"] {
+  --md-code-hl-operator-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-punctuation-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-generic-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-variable-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-comment-color: rgba(0, 0, 0, 0.65);
+}
