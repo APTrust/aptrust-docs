@@ -1,3 +1,9 @@
+---
+description: >-
+  Board-approved APTrust policies and governance documents — preservation, collection strategy,
+  financial sustainability, succession — each DOI-assigned through UVA.
+---
+
 # APTrust Policies
 
 APTrust maintains a transparent, systematically managed set of policies and governance

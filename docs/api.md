@@ -1,5 +1,5 @@
 ---
-description: >
+description: >-
   Interactive reference for the APTrust Member REST API v3, powered by the OpenAPI specification.
 hide:
   - toc

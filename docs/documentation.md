@@ -1,3 +1,9 @@
+---
+description: >-
+  Further APTrust documentation on aptrust.org: Trusted Digital Repository self-certification
+  against ISO 16363 and OAIS, plus member-restricted technical reference.
+---
+
 # Other APTrust Documentation
 
 The APTrust website hosts additional documentation covering our Trusted Digital Repository

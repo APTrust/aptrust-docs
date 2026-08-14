@@ -1,5 +1,5 @@
 ---
-description: >
+description: >-
   APTrust documentation hub: user guides for depositing, registry management,
   DART desktop tool, and preservation services technical reference.
 ---

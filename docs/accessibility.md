@@ -1,3 +1,9 @@
+---
+description: >-
+  APTrust's WCAG 2.2 Level AA commitment for docs.aptrust.org: how the site is tested with screen
+  readers and keyboard navigation, and how to request assistance.
+---
+
 # Accessibility Statement
 
 ## Overview
