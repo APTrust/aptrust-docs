@@ -1,6 +1,41 @@
 {% extends "base.html" %}
 
 {% block extrahead %}
+<!-- Flash-of-unstyled-content guard for Material's inline SVG icons.
+
+     Material's chrome icons (logo, hamburger, search, palette toggle, footer
+     arrows) are inline <svg viewBox="0 0 24 24"> with no width/height
+     attributes — their size comes entirely from the stylesheet. With nothing
+     applied they fall back to filling their container, so the header logo
+     renders around 1500px square in solid black.
+
+     That window is real because of navigation.instant: on every in-site
+     navigation Material adds a fresh set of stylesheet <link> elements for the
+     incoming page and removes the outgoing set in the same tick. The new links
+     are new elements, so they apply only once loaded — and GitHub Pages serves
+     our CSS with max-age=14400, so a first visit (or any visit past that
+     window, needing a 304 revalidation) puts a network round trip in the
+     middle, leaving the document with no stylesheets attached. The API page is
+     where this is unmissable: its body is one iframe that has not painted yet,
+     so the giant logo is the only thing on screen.
+
+     Note when debugging locally: `mkdocs serve` sends no cache headers at all,
+     so the dev server refetches every stylesheet on every navigation and
+     flashes each time. That is not what production does — see the
+     navigation.instant entry in CLAUDE.md's "Known constraints" for the
+     measurements on both.
+
+     Inline styles are part of the HTML and Material's head swap only touches
+     <link> elements, so this rule stays applied throughout. :where() gives it
+     zero specificity — the instant Material's own CSS attaches, its rules win
+     and nothing about normal rendering changes. -->
+<style>
+    :where(.md-header, .md-tabs, .md-nav, .md-search, .md-sidebar, .md-footer) :where(svg) {
+        width: 1.2rem;
+        height: 1.2rem;
+    }
+</style>
+
 <!-- Matomo: load tracker only (trackPageView fires via document$ below) -->
 <script>
     var _paq = window._paq = window._paq || [];
@@ -358,11 +393,153 @@
             }
         }());
 
-        /* WCAG 4.1.2: the swagger-ui-tag plugin renders iframes without a title,
-           making them opaque to screen readers. */
-        document.querySelectorAll('iframe.swagger-ui-iframe:not([title])').forEach(function (iframe) {
-            iframe.setAttribute('title', 'APTrust Member API Reference');
-        });
+        /* Swagger UI iframe patches — accessibility, plus a sizing/theming
+           fallback for instant navigation.
+
+           WCAG 4.1.2: the swagger-ui-tag plugin renders iframes without a
+           title, making them opaque to screen readers.
+
+           The sizing fallback exists because the plugin appends its control
+           script to the end of <body>, outside [data-md-component=container]
+           — the only region Material replaces (and re-executes scripts in)
+           during instant navigation. Reaching /api/ from any in-site link
+           therefore leaves the iframe at its default ~150px height, so the
+           API reference looks like it failed to load, and leaves it stuck in
+           light mode; only a hard refresh fixed it. The plugin's script does
+           four things, all of which we reproduce here:
+             1. window.__init_is_dark_mode — read by the iframe as it boots.
+             2. window.update_swagger_ui_iframe_height(id) — called back by
+                the iframe whenever its content grows (first render, and
+                every time an endpoint is expanded).
+             3. a scroll listener feeding the iframe the viewport midpoint.
+             4. a palette observer toggling dark mode inside the iframe.
+           We do not try to detect whether the plugin's script ran: on an
+           instant navigation the tag is present in the DOM but unexecuted, so
+           its presence proves nothing, and it registers its own document$
+           subscriber immediately after this one, so probing for its globals
+           always comes up empty. Everything below is written to be harmless
+           if the plugin's copy also runs — identical values, and one-time
+           document-level listeners. */
+        (function () {
+            var iframes = document.querySelectorAll('iframe.swagger-ui-iframe');
+            if (!iframes.length) return;
+
+            iframes.forEach(function (iframe) {
+                if (!iframe.hasAttribute('title')) {
+                    iframe.setAttribute('title', 'APTrust Member API Reference');
+                }
+            });
+
+            var DARK_SCHEME = 'slate';
+
+            function isDarkMode() {
+                if (document.body.getAttribute('data-md-color-media') === '(prefers-color-scheme: dark)') {
+                    return window.getComputedStyle(document.body)
+                        .getPropertyValue('color-scheme').trim() === 'dark';
+                }
+                return document.body.getAttribute('data-md-color-scheme') === DARK_SCHEME;
+            }
+
+            function applyScheme(iframe) {
+                try {
+                    var w = iframe.contentWindow;
+                    if (!w || !w.enable_dark_mode) return;
+                    isDarkMode() ? w.enable_dark_mode() : w.disable_dark_mode();
+                } catch (e) { /* iframe not ready yet */ }
+            }
+
+            /* Must be set before the iframe's own boot script reads it. */
+            window.__init_is_dark_mode = isDarkMode();
+
+            if (typeof window.update_swagger_ui_iframe_height !== 'function') {
+                window.update_swagger_ui_iframe_height = function (id) {
+                    var iframe = document.getElementById(id);
+                    if (!iframe) return;
+                    try {
+                        var h = (iframe.contentWindow.document.body.scrollHeight + 80) + 'px';
+                        iframe.height = h;
+                        iframe.style.height = h;
+                    } catch (e) { /* iframe not ready yet */ }
+                };
+            }
+
+            iframes.forEach(function (iframe) {
+                if (iframe.dataset.swaggerSized) return;
+                iframe.dataset.swaggerSized = '1';
+
+                /* Watch the iframe's own document rather than sizing once:
+                   a single measurement is easy to take at the wrong moment
+                   (the document reports readyState "complete" while Swagger
+                   UI has still rendered nothing, which pins the iframe at the
+                   80px padding and leaves nothing to correct it). The observer
+                   fires an initial callback on observe() and again on every
+                   later reflow, which also covers expanding an endpoint
+                   without depending on the iframe calling back out. */
+                function watch() {
+                    if (iframe.dataset.swaggerObserved || typeof ResizeObserver !== 'function') return;
+                    try {
+                        var body = iframe.contentWindow.document.body;
+                        iframe.dataset.swaggerObserved = '1';
+                        new ResizeObserver(function () {
+                            try {
+                                var wanted = iframe.contentWindow.document.body.scrollHeight + 80;
+                                /* Hysteresis: resizing the iframe resizes its
+                                   viewport, so only react to real content
+                                   changes or this can chase its own tail. */
+                                if (Math.abs(wanted - iframe.getBoundingClientRect().height) > 4) {
+                                    window.update_swagger_ui_iframe_height(iframe.id);
+                                }
+                            } catch (e) { /* iframe went away */ }
+                        }).observe(body);
+                    } catch (e) { /* iframe not ready yet */ }
+                }
+
+                iframe.addEventListener('load', function () {
+                    applyScheme(iframe);
+                    watch();
+                });
+
+                /* A cached iframe document can be complete before the listener
+                   above is attached. about:blank is skipped: it reports
+                   readyState "complete" while the real document is still on
+                   its way. */
+                try {
+                    if (iframe.contentWindow.document.readyState === 'complete' &&
+                        iframe.contentWindow.location.href !== 'about:blank') {
+                        applyScheme(iframe);
+                        watch();
+                    }
+                } catch (e) { /* iframe not ready yet */ }
+            });
+
+            /* Document-level listeners survive instant navigation along with
+               window, so install them only on the first API page visit. */
+            if (window.__swaggerListenersInstalled) return;
+            window.__swaggerListenersInstalled = true;
+
+            /* The iframe renders its operations relative to the viewport
+               midpoint, which only the parent can measure. */
+            var ticking = false;
+            document.addEventListener('scroll', function () {
+                if (ticking) return;
+                ticking = true;
+                window.requestAnimationFrame(function () {
+                    var midpoint = window.innerHeight / 2;
+                    document.querySelectorAll('iframe.swagger-ui-iframe').forEach(function (el) {
+                        try {
+                            if (el.contentWindow.update_top_val) {
+                                el.contentWindow.update_top_val(midpoint - el.getBoundingClientRect().top);
+                            }
+                        } catch (e) { /* iframe not ready yet */ }
+                    });
+                    ticking = false;
+                });
+            });
+
+            new MutationObserver(function () {
+                document.querySelectorAll('iframe.swagger-ui-iframe').forEach(applyScheme);
+            }).observe(document.body, { attributeFilter: ['data-md-color-scheme'] });
+        }());
 
         document.querySelectorAll('.md-typeset a[href^="http"]').forEach(function (link) {
             /* Skip links that point to this same site */
