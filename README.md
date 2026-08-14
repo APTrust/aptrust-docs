@@ -38,7 +38,7 @@ requirements.txt    # Python dependencies for building the site
 docs/
 ├── index.md              # Landing page
 ├── api.md                # Member API v3 interactive reference (Swagger UI)
-├── member_api_v3.yml     # OpenAPI spec — auto-refreshed from registry repo on every build
+├── member_api_v3.yml     # OpenAPI spec — auto-refreshed from registry repo on every build, synced nightly
 ├── documentation.md      # Bridge page → aptrust.org/documentation/
 ├── policies.md           # Bridge page → aptrust.org/resources/policies/
 └── stylesheets/
@@ -65,13 +65,15 @@ repos/               ← created at build time, not committed
 
 ## Automatic deploys
 
-The build-and-deploy workflow runs on three triggers:
+The build-and-deploy workflow runs on four triggers:
 
 1. **Push to `main` in this repo** — for changes to the landing page, bridge pages, `mkdocs.yml`, or `requirements.txt`.
 
 2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a secret named `DOCS_DISPATCH_TOKEN` in each sub-repo: a fine-grained PAT with **Contents: Read and write** permission on this repo (`APTrust/aptrust-docs`).
 
 3. **Manual run** — from the Actions tab → Build and Deploy Documentation → Run workflow.
+
+4. **Nightly at 07:00 UTC** (3:00 AM EDT / 2:00 AM EST) — picks up changes to the Member API OpenAPI spec, which lives in `APTrust/registry` and sends no dispatch event here. The nightly run also commits the refreshed spec back to `main` when it has changed upstream. Note that GitHub disables scheduled workflows after 60 days of no commit activity in a repo; if that happens, re-enable it from the Actions tab.
 
 The workflow clones the four sub-repos, runs `mkdocs build`, and deploys the output to the `gh-pages` branch via [peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages). GitHub Pages serves from that branch.
 
@@ -105,7 +107,7 @@ mkdocs build     # write static site to ./site/
 4. The `mkdocs-swagger-ui-tag` plugin (already in `requirements.txt`) handles the rest.
 5. If the spec is hosted in another repo, add a `curl` step to the build workflow (see Step 4 in `build-and-deploy.yml`) to pull the latest version on every build.
 
-The `member_api_v3.yml` spec is refreshed automatically on every build — no manual update needed. The copy committed in `docs/` is only used when running `mkdocs serve` locally without internet access.
+The `member_api_v3.yml` spec is refreshed automatically on every build — no manual update needed. The copy committed in `docs/` is only used when running `mkdocs serve` locally without internet access, and the nightly run commits an updated copy back to `main` whenever the spec changes upstream, so it stays current rather than drifting. Don't hand-edit that file: the next build overwrites it.
 
 ## Adding a bridge page
 

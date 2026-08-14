@@ -2,7 +2,7 @@ name: Build and Deploy Documentation
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 #
-# This workflow fires under two conditions:
+# This workflow fires under four conditions:
 #
 # 1. push to main — for direct changes to this repo: edits to the landing page,
 #    mkdocs.yml, requirements.txt, or workflow files.
@@ -30,6 +30,21 @@ name: Build and Deploy Documentation
 #      commit SHA) that shows up in logs — useful for debugging, but we rebuild
 #      all four sub-repos regardless since mkdocs builds the whole site at once.
 #
+# 4. schedule (nightly) — for changes to the Member API OpenAPI spec.
+#
+#    The spec rendered on /api/ is maintained in APTrust/registry, which is NOT
+#    one of the four docs sub-repos and sends us no repository_dispatch. Without
+#    a schedule, an API spec change stays unpublished until something unrelated
+#    happens to trigger a build. The nightly run pulls the current spec (Step 4),
+#    commits it back to main if it changed (Step 5), and redeploys.
+#
+#    Two things to know about GitHub's scheduler:
+#    - Scheduled runs are best-effort and can be delayed during peak load. This
+#      is a freshness job, not a deadline job, so a late run is harmless.
+#    - GitHub disables scheduled workflows in a repository with 60 days of no
+#      commit activity. This repo is active, but if that ever happens the nightly
+#      run stops silently and must be re-enabled from the Actions tab.
+#
 on:
   push:
     branches:
@@ -38,6 +53,10 @@ on:
   repository_dispatch:
     types:
       - sub-repo-updated
+  schedule:
+    # 07:00 UTC daily = 3:00 AM EDT / 2:00 AM EST. Cron is always UTC; GitHub
+    # does not adjust for daylight saving.
+    - cron: '0 7 * * *'
 
 # ── Concurrency ───────────────────────────────────────────────────────────────
 #
@@ -152,6 +171,42 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/APTrust/registry/master/member_api_v3.yml \
             -o docs/member_api_v3.yml
+
+      # ── Step 5: Commit the refreshed API spec ───────────────────────────────
+      #
+      # Step 4 only refreshes the working copy for this build. Without this step
+      # the committed docs/member_api_v3.yml drifts permanently stale, which
+      # matters because that copy is what `mkdocs serve` renders locally.
+      #
+      # Committing here rather than in a separate sync workflow is deliberate:
+      # pushes authenticated with GITHUB_TOKEN do not trigger workflow runs, so a
+      # standalone workflow could commit the spec but could not make the site
+      # redeploy without a PAT. Doing it inline means the same run that fetches
+      # the spec goes on to build and deploy it. That same rule is also why this
+      # push cannot loop back into another build.
+      #
+      # The event guard keeps the sync owned by the nightly (and manual) run. Any
+      # push to main and every repository_dispatch from the four sub-repos would
+      # otherwise also try to commit, appending bot commits onto unrelated content
+      # pushes. Those runs still deploy the fresh spec — they just don't commit it.
+      #
+      # No extra secret or permission is needed: `permissions: contents: write` is
+      # already declared above for the gh-pages deploy, and actions/checkout@v4
+      # persists those credentials for git push by default.
+      #
+      - name: Commit refreshed API spec
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          if git diff --quiet -- docs/member_api_v3.yml; then
+            echo "Member API spec unchanged — nothing to commit."
+            exit 0
+          fi
+          echo "Member API spec changed upstream — committing."
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add docs/member_api_v3.yml
+          git commit -m 'docs: sync member_api_v3.yml from APTrust/registry'
+          git push
 
       # ── Step 6: Set up Python ───────────────────────────────────────────────
       #
