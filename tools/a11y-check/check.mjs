@@ -340,6 +340,105 @@ function axChecks(axByKey, domInfo) {
   return fail;
 }
 
+/* Focus trap probe (drawer states only).
+   This one cannot live in STRUCTURAL_CHECKS: it needs REAL Tab presses, and a
+   synthetic KeyboardEvent does not move focus. It drives the drawer exactly the
+   way the auditor did — click the hamburger, then tab — because the bug it
+   guards was invisible any other way: initial focus into the drawer is delayed
+   280ms so the slide-in can finish, and for that window focus was still on the
+   header hamburger, so Tab walked straight into the header. Opening the drawer
+   by setting the checkbox (as the passes above do) never reproduces it, because
+   focus is not on the hamburger to begin with. */
+async function probeFocusTrap(page) {
+  const fail = [];
+  const HAM = '.md-header__button[data-md-toggle-target="__drawer"]';
+  const inSidebar = () => page.evaluate(() => {
+    const el = document.activeElement;
+    const sb = document.querySelector('.md-sidebar--primary');
+    return {
+      inside: !!(el && sb && sb.contains(el)),
+      at: el && el !== document.body
+        ? el.tagName + ' "' + (el.getAttribute('aria-label') ||
+            (el.textContent || '').trim().slice(0, 30)) + '"'
+        : 'body',
+    };
+  });
+
+  /* Start from a known closed state, then open it the way a user does. */
+  await page.evaluate(() => {
+    const cb = document.getElementById('__drawer');
+    if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+  });
+  await page.waitForTimeout(350);
+  await page.click(HAM);
+
+  /* No wait: this is the 280ms window. */
+  await page.keyboard.press('Tab');
+  const early = await inSidebar();
+  if (!early.inside) {
+    fail.push({ check: 'focus-escapes-drawer-early',
+                detail: 'Tab immediately after opening left the drawer -> ' + early.at });
+  }
+
+  await page.waitForTimeout(500);
+  const ring = await page.evaluate(() => {
+    const sb = document.querySelector('.md-sidebar--primary');
+    return [...sb.querySelectorAll('a,button,[tabindex]')]
+      .filter((e) => e.getAttribute('tabindex') !== '-1' && e.offsetParent !== null &&
+                     getComputedStyle(e).visibility === 'visible').length;
+  });
+  for (let i = 0; i < ring + 5; i++) {
+    await page.keyboard.press('Tab');
+    const st = await inSidebar();
+    if (!st.inside) {
+      fail.push({ check: 'focus-escapes-drawer',
+                  detail: `Tab #${i + 1} of a ${ring}-stop ring left the drawer -> ` + st.at });
+      break;
+    }
+  }
+  if (!fail.some((f) => f.check === 'focus-escapes-drawer')) {
+    await page.evaluate(() => {
+      const sb = document.querySelector('.md-sidebar--primary');
+      const f = [...sb.querySelectorAll('a,button,[tabindex]')]
+        .filter((e) => e.getAttribute('tabindex') !== '-1' && e.offsetParent !== null &&
+                       getComputedStyle(e).visibility === 'visible');
+      if (f.length) f[0].focus();
+    });
+    await page.keyboard.press('Shift+Tab');
+    const back = await inSidebar();
+    if (!back.inside) {
+      fail.push({ check: 'focus-escapes-drawer-backward',
+                  detail: 'Shift+Tab from the first stop left the drawer -> ' + back.at });
+    }
+  }
+
+  /* Escape must close and hand focus back to the control that opened it, and
+     the trap must let go — a guard left armed would drag focus back in. */
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(350);
+  const closed = await page.evaluate((sel) => ({
+    open: document.getElementById('__drawer').checked,
+    onTrigger: document.activeElement === document.querySelector(sel),
+  }), HAM);
+  if (closed.open) fail.push({ check: 'escape-does-not-close-drawer', detail: 'drawer still open' });
+  if (!closed.onTrigger) {
+    fail.push({ check: 'escape-does-not-restore-focus', detail: 'focus did not return to the hamburger' });
+  }
+  await page.keyboard.press('Tab');
+  const after = await inSidebar();
+  if (after.inside) {
+    fail.push({ check: 'focus-trapped-after-close', detail: 'Tab after closing went back into the drawer' });
+  }
+
+  /* Leave the drawer open again so the state matches the rest of the sweep. */
+  await page.evaluate(() => {
+    const cb = document.getElementById('__drawer');
+    if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+  });
+  await page.waitForTimeout(350);
+  return fail;
+}
+
 async function run() {
   if (!existsSync(SITE)) throw new Error(`No build at ${SITE} — run \`mkdocs build\` first.`);
   await rm(REPORT, { recursive: true, force: true });
@@ -451,7 +550,10 @@ async function run() {
       await writeFile(join(REPORT, `${id}.ax.json`), JSON.stringify(sidebarAx, null, 2));
       await page.screenshot({ path: join(REPORT, `${id}.png`), fullPage: false });
 
-      const allFail = [...structural, ...axFail];
+      /* --- focus trap (needs real key presses; drawer states only) --- */
+      const trapFail = state.drawer ? await probeFocusTrap(page) : [];
+
+      const allFail = [...structural, ...axFail, ...trapFail];
       failures += violations.length + allFail.length;
       results.push({ state: state.name, path, violations, structural: allFail });
 

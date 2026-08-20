@@ -197,6 +197,47 @@ drawer is done by `.md-nav--primary .md-nav__title ~ .md-nav__list`, which is
 untouched; on desktop this wrapper is the sidebar's real scroll container, so the
 rule is scoped to `max-width: 76.234375em`.
 
+### The drawer focus trap has to handle focus that is already outside it
+
+Ablr's 2.4.3 "Keyboard focus is not maintained in modal" finding, reported three
+times. The trap wrapped correctly at both ends of the ring — that part was never
+broken — but it only ever acted when `document.activeElement` was the first or
+last stop. **Focus sitting outside the drawer entirely was not a case it had.**
+
+That state is reachable, and by the most ordinary route there is: `activateTrap`
+deliberately waits 280ms before moving focus into the drawer, so the CSS slide-in
+can finish before VoiceOver's cursor lands (see the comment there). For that
+280ms focus is still on the header hamburger the user just clicked — and Tab from
+there walked straight on to the next header control. Measured before the fix, on
+every page and at both drawer widths: one Tab immediately after opening landed on
+the header's palette toggle.
+
+Two additions close it:
+
+- `trapHandler` now checks `sidebar.contains(document.activeElement)` first and,
+  if focus is outside, pulls it to the first (or last, on Shift) stop.
+- a `focusin` listener holds focus for everything that is not a Tab — a click on
+  the page behind, a programmatic `focus()` from the theme's own keyboard
+  shortcuts, a screen reader jumping by role.
+
+**The `focusin` guard is armed inside the 280ms timeout, not in `activateTrap`,
+and it is torn down before `deactivateTrap` restores focus to the hamburger.**
+Both matter. Arming it early makes it fight the initial focus; removing it late
+means closing the drawer immediately drags focus back into it. The timeout also
+checks a `trapActive` flag, because a drawer opened and closed again inside those
+280ms would otherwise arm a guard with nothing to guard — focus trapped for good,
+with no drawer on screen.
+
+`focusables()` also has to match everything focusable, not just `a` and `button`:
+the scrollable `.md-nav__list` containers carry `tabindex="0"` (the Safari scroll
+fix) and are genuine tab stops, so leaving them out miscounts both ends of the
+ring.
+
+Six teardown paths were verified with real key presses — Escape, Tab after close,
+open-and-close inside the 280ms window, the in-drawer Close button, a backdrop
+click, and resizing to desktop with the drawer open. `check.mjs` guards the first
+three plus both ring directions; see `probeFocusTrap`.
+
 ### Overridden partials are forks — re-diff them on upgrade
 
 `overrides/partials/{nav,nav-item,toc,header}.html` are copies of

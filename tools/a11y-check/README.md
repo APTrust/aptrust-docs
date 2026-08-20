@@ -32,6 +32,13 @@ is the same CSS viewport — and it is where the drawer is most cramped.
 external auditor runs. Tags: `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`,
 `wcag22aa`, `best-practice`.
 
+**2b. A focus-trap probe with real key presses** (`probeFocusTrap`). This one
+cannot be an in-page assertion: a synthetic `KeyboardEvent` does not move focus,
+so the only way to know whether Tab escapes the drawer is to press Tab. It also
+opens the drawer by **clicking the hamburger**, the way the auditor did, because
+opening it by setting the checkbox never reproduces the escape — focus has to
+start on the hamburger for the 280ms window to matter.
+
 **2. Structural assertions read from Chrome's real accessibility tree** (via CDP
 `Accessibility.queryAXTree`). This layer exists because **axe did not catch the
 finding that prompted this tool**. A `<label>` that looks like a heading,
@@ -55,6 +62,8 @@ Assertions:
 | `drawer-without-heading` / `drawer-heading-inside-control` | WCAG 1.3.1. Every drawer panel has a visible title, so an open drawer exposing no heading means that title is announcing as something else — the "visual heading text is not marked as heading" finding. This regressed once: the panel header used to be one big `<button>`, so once the reflow rules hid the covered root panel there was no heading left in the sidebar at all. |
 | `drawer-close-button-count` | Each panel carries its own Close button because an open panel covers the one below it. Exactly one must be on screen — none means no visible way out of the drawer, more than one means a covered panel is leaking through. |
 | `drawer-scrolled-sideways` | The panels sit off-canvas inside a wrapper whose `scrollWidth` spans all of them, so a horizontal scroll there *is* the reflow failure. Revealing a focused element must never move it. |
+| `focus-escapes-drawer-early` / `focus-escapes-drawer` / `focus-escapes-drawer-backward` | WCAG 2.4.3. The open drawer is a modal, so Tab and Shift+Tab must cycle inside it. `-early` is its own check because the bug it guards only exists for the 280ms between opening the drawer and focus moving into it — during which focus is still on the hamburger, outside the trap. |
+| `escape-does-not-close-drawer` / `escape-does-not-restore-focus` / `focus-trapped-after-close` | Escape must close the drawer and hand focus back to the hamburger, and the trap must then let go — a guard left armed drags focus back into a drawer that is no longer on screen. |
 | `tabbable-offscreen-in-drawer` / `tabbable-covered-in-drawer` | WCAG 1.4.10 (Reflow). With the drawer open, every tabbable sidebar control must be on screen *and* be the topmost element at its own centre. Material parks collapsed drawer panels off-canvas with a transform and lets an open panel cover its parent, hiding neither from the tab order — so the keyboard walked through ~200 controls the user could not see. Each element is `scrollIntoView`'d first, so an item merely below the fold of a scrollable list is not a failure; only one that cannot be scrolled to, or that something is painted over, is. |
 
 ## report/

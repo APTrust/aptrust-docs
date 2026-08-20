@@ -357,7 +357,8 @@
                drawer. */
             function focusables(sidebar) {
                 return Array.from(sidebar.querySelectorAll(
-                    'a:not([tabindex="-1"]), button:not([tabindex="-1"])'
+                    'a:not([tabindex="-1"]), button:not([tabindex="-1"]), ' +
+                    '[tabindex]:not([tabindex="-1"])'
                 )).filter(function (el) {
                     if (el.offsetParent === null) return false;
                     return window.getComputedStyle(el).visibility === 'visible';
@@ -365,8 +366,11 @@
             }
 
             var trapHandler = null;
+            var focusInHandler = null;
+            var trapActive = false;
 
             function activateTrap() {
+                trapActive = true;
                 setTabindex(true);
                 trapHandler = function (e) {
                     /* WCAG 2.1.1 best practice: Escape closes the dialog and
@@ -383,9 +387,25 @@
                     if (!sidebar) return;
                     var f = focusables(sidebar);
                     if (!f.length) return;
-                    if (e.shiftKey && document.activeElement === f[0]) {
+                    var active = document.activeElement;
+                    /* Focus is outside the drawer entirely. This is the window
+                       the audit kept catching ("it is possible to tab out of the
+                       expanded menu"): the initial focus below is deliberately
+                       delayed until the slide-in finishes, so for the first
+                       280ms after the drawer opens focus is still on the header
+                       hamburger — and Tab from there walked straight on to the
+                       next header control. Wrapping only at the ends of the ring
+                       never saw it, because activeElement was at neither end.
+                       Pulling focus in covers every other way it can end up
+                       outside too. */
+                    if (!sidebar.contains(active)) {
+                        e.preventDefault();
+                        (e.shiftKey ? f[f.length - 1] : f[0]).focus();
+                        return;
+                    }
+                    if (e.shiftKey && active === f[0]) {
                         e.preventDefault(); f[f.length - 1].focus();
-                    } else if (!e.shiftKey && document.activeElement === f[f.length - 1]) {
+                    } else if (!e.shiftKey && active === f[f.length - 1]) {
                         e.preventDefault(); f[0].focus();
                     }
                 };
@@ -395,17 +415,43 @@
                    an element that is still off-screen (left:-12.1rem + translateX
                    animating), which confuses VoiceOver's visual cursor. */
                 setTimeout(function () {
+                    /* The drawer may already have been closed again inside this
+                       280ms — arming the guard then would trap focus for good. */
+                    if (!trapActive) return;
                     var sidebar = getSidebar();
                     if (!sidebar) return;
                     var focusable = focusables(sidebar);
                     if (focusable.length) focusable[0].focus();
+
+                    /* Keydown alone only traps Tab. A modal has to hold focus
+                       however it moves — a click on the page behind, a
+                       programmatic focus() from the theme's own keyboard
+                       shortcuts, a screen reader jumping by role. focusin
+                       catches all of them. Armed here rather than in
+                       activateTrap so it cannot fight the initial focus above,
+                       and removed before deactivateTrap returns focus to the
+                       hamburger. */
+                    focusInHandler = function (ev) {
+                        var sb = getSidebar();
+                        if (!sb || sb.contains(ev.target)) return;
+                        var list = focusables(sb);
+                        if (list.length) list[0].focus();
+                    };
+                    document.addEventListener('focusin', focusInHandler);
                 }, 280);
             }
 
             function deactivateTrap() {
+                trapActive = false;
                 if (trapHandler) {
                     document.removeEventListener('keydown', trapHandler);
                     trapHandler = null;
+                }
+                /* Must come off before the focus() below, or the guard would
+                   drag focus straight back into the sidebar we just closed. */
+                if (focusInHandler) {
+                    document.removeEventListener('focusin', focusInHandler);
+                    focusInHandler = null;
                 }
                 setTabindex(false);
                 if (dLabel) dLabel.focus();
@@ -419,9 +465,14 @@
 
             mobileMql.addEventListener('change', function (e) {
                 if (!e.matches) {
+                    trapActive = false;
                     if (trapHandler) {
                         document.removeEventListener('keydown', trapHandler);
                         trapHandler = null;
+                    }
+                    if (focusInHandler) {
+                        document.removeEventListener('focusin', focusInHandler);
+                        focusInHandler = null;
                     }
                     var sidebar = getSidebar();
                     if (sidebar) {
