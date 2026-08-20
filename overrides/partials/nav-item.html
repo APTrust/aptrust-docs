@@ -193,14 +193,34 @@
         {#- APTRUST: id added for aria-controls; aria-expanded removed — it is not
             an allowed attribute on role="navigation" and now lives on the button. -#}
         <nav class="md-nav" id="{{ path }}_content" data-md-level="{{ level }}" aria-labelledby="{{ path }}_label">
-          {#- APTRUST: this title is the mobile drawer's back control — it really
-              is interactive, and it is display:none on desktop, so it never
-              competes with the section heading above. A <button> is the correct
-              element for it. -#}
-          <button type="button" class="md-nav__title md-nav__title--back" data-md-nav-back="{{ path }}">
-            <span class="md-nav__icon md-icon"></span>
-            {{ nav_item.title }}
-          </button>
+          {#- APTRUST: the drawer panel's header (Ablr 1.3.1 "Visual heading text
+              is not marked as heading", Serious).
+
+              Upstream makes this whole 5.6rem row one <label for> — and an
+              earlier fix here made it one <button> — so the panel's visible
+              title announced as a control rather than a heading. With the
+              reflow rules in extra.css hiding every covered panel, that left
+              the open drawer exposing NO headings at all on any page inside a
+              section: rotor navigation in the sidebar was simply dead.
+
+              It is two things in one box, so it renders as two elements, the
+              same split nav.html already uses for the root drawer title:
+
+                * the back CONTROL — Material already draws its chevron as an
+                  absolutely-positioned 1.2rem icon in the 3rem of padding above
+                  the text, so it becomes an icon-only <button> there, padded out
+                  to 44x44 in extra.css (WCAG 2.5.8).
+                * the panel TITLE — a real heading, at the same level the desktop
+                  section header for this item uses, so the two never disagree.
+
+              The box itself is now an inert <div>: display:none on desktop, so
+              it never competes with the section heading above. -#}
+          <div class="md-nav__title md-nav__title--back">
+            <button type="button" class="md-nav__back-button" data-md-nav-back="{{ path }}" aria-label="Back to {{ nav_item.parent.title if nav_item.parent and nav_item.parent.title else config.site_name }}">
+              <span class="md-nav__icon md-icon"></span>
+            </button>
+            <{{ heading }} class="md-nav__title-label">{{ nav_item.title }}</{{ heading }}>
+          </div>
           {#- APTRUST: every drawer panel gets its own Close button (Ablr 1.4.10
               "Reflow", Serious).
 

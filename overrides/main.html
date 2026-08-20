@@ -238,10 +238,14 @@
         });
 
         /* Mobile drawer "back" controls. Each nested panel and the in-drawer
-           table of contents has one; it closes its own panel. Rendered as a
-           <button> by nav-item.html/toc.html because it genuinely is a control —
-           unlike the section headers it sits next to. */
-        document.querySelectorAll('.md-nav__title--back[data-md-nav-back]').forEach(function (btn) {
+           table of contents has one; it closes its own panel.
+
+           It used to be the whole panel header. That made the panel's visible
+           title announce as a button rather than a heading, so nav-item.html and
+           toc.html now split the header into a real heading plus this icon-only
+           button — the control is a control, the heading is a heading. Only the
+           button carries data-md-nav-back. */
+        document.querySelectorAll('.md-nav__back-button[data-md-nav-back]').forEach(function (btn) {
             if (btn.dataset.backPatched) return;
             btn.dataset.backPatched = '1';
             btn.addEventListener('click', function () {

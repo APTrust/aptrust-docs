@@ -17,8 +17,9 @@
       finding.
 
     * nav-item.html includes it inside the primary nav for the current page.
-      There it is the mobile drawer's back control — genuinely interactive, and
-      correctly a button.
+      There it is the mobile drawer's TOC panel header, which is both the panel
+      title and the back control — so it splits into a real heading plus an
+      icon-only back button, exactly as nav-item.html's panel headers do.
 
   One element cannot be both, so the two includes now render different markup.
   Whichever one is not applicable at the current viewport is display:none, which
@@ -42,9 +43,21 @@
   {% endif %}
   {% if toc %}
     {% if in_drawer %}
-      <button type="button" class="md-nav__title md-nav__title--back" data-md-nav-back="__toc">
-        <span class="md-nav__icon md-icon"></span>
-        {{ title }}
+      {#- APTRUST: same split as nav-item.html's panel header — an icon-only
+          back button plus a real heading — so the panel's visible title
+          announces as a heading rather than as a control. See the comment
+          block there. -#}
+      <div class="md-nav__title md-nav__title--back">
+        <button type="button" class="md-nav__back-button" data-md-nav-back="__toc" aria-label="Back to {{ page.title }}">
+          <span class="md-nav__icon md-icon"></span>
+        </button>
+        <h2 class="md-nav__title-label">{{ title }}</h2>
+      </div>
+      {#- APTRUST: the drawer's TOC panel covers the one below it, so it needs
+          its own Close button for the same reason every other panel does. See
+          the comment in nav-item.html. -#}
+      <button type="button" class="md-nav__close-button" aria-label="Close navigation menu" data-md-component="nav-close">
+        Close
       </button>
     {% else %}
       <h2 class="md-nav__title md-nav__title--heading">

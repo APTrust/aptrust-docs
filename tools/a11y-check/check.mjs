@@ -228,6 +228,8 @@ const STRUCTURAL_CHECKS = `
   const sidebar = document.querySelector('.md-sidebar--primary');
   if (drawerCb && drawerCb.checked && sidebar &&
       matchMedia('(max-width: 76.234375em)').matches) {
+    const scrollwrap = sidebar.querySelector('.md-sidebar__scrollwrap');
+    let wrapScrolled = false;
     for (const el of sidebar.querySelectorAll('a[href], button')) {
       if (el.getAttribute('tabindex') === '-1' || hidden(el)) continue;
       if (!visible(el)) continue;
@@ -236,6 +238,7 @@ const STRUCTURAL_CHECKS = `
          list is fine — the scroll reveals it. An item parked off-canvas by a
          transform cannot be scrolled to, so it stays outside. */
       el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      wrapScrolled = wrapScrolled || (scrollwrap ? scrollwrap.scrollLeft !== 0 : false);
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       const cx = r.left + r.width / 2;
@@ -253,11 +256,48 @@ const STRUCTURAL_CHECKS = `
             (top ? top.tagName + '.' + String(top.className).slice(0, 40) : 'nothing'));
       }
     }
+    /* Revealing a focused element must never drag the drawer sideways: the
+       panels sit off-canvas inside a wrapper whose scrollWidth spans all of
+       them, so a horizontal scroll here IS the reflow failure. */
+    if (wrapScrolled) {
+      add('drawer-scrolled-sideways',
+          'revealing a focusable element scrolled .md-sidebar__scrollwrap horizontally');
+    }
+
     /* Leave the drawer as we found it so the evidence screenshot below shows
        the top of the nav rather than wherever the sweep left it. */
     sidebar.querySelectorAll('.md-nav__list, .md-sidebar__scrollwrap')
       .forEach((e) => { e.scrollTop = 0; });
     window.scrollTo(0, 0);
+
+    /* 9. WCAG 1.3.1: the open drawer must expose at least one heading. Every
+          panel has a visible title, so a drawer with none means that title is
+          being announced as something else — which is exactly the finding
+          ("visual heading text is not marked as heading"). This regressed once
+          already: the panel header used to be one big <button>, so once the
+          reflow rules hid the covered root panel there was no heading left in
+          the sidebar at all on any page inside a section. */
+    const drawerHeadings = [...sidebar.querySelectorAll('h1,h2,h3,h4,h5,h6,[role="heading"]')]
+      .filter((e) => visible(e) && !hidden(e));
+    if (drawerHeadings.length === 0) {
+      add('drawer-without-heading',
+          'open drawer exposes no heading for the panel on screen');
+    }
+    for (const h of drawerHeadings) {
+      if (h.closest('a[href], button')) {
+        add('drawer-heading-inside-control', label(h));
+      }
+    }
+
+    /* 10. Every drawer panel carries its own Close button, because an open
+           panel covers the one below it (see nav-item.html). Exactly one must
+           be on screen: none means the drawer has no visible way out, more than
+           one means a covered panel is leaking through. */
+    const closes = [...sidebar.querySelectorAll('.md-nav__close-button')]
+      .filter((e) => visible(e) && !hidden(e));
+    if (closes.length !== 1) {
+      add('drawer-close-button-count', closes.length + ' visible Close buttons, expected 1');
+    }
   }
 
   return fail;

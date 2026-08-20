@@ -344,10 +344,11 @@
  * labels did; width/text-align restore the block-level layout <label> had.
  *
  * NOTE: font longhands, not the `font` shorthand. The shorthand also sets
- * font-weight, and at specificity 0,1,1 it beat Material's own
- * `.md-nav__title { font-weight: 700 }` (0,1,0) — which silently un-bolded the
- * drawer's back buttons. Leaving font-weight out lets the theme's rules apply
- * and still overrides the user-agent default, since any author rule beats UA. */
+ * font-weight, and at specificity 0,1,1 it beats Material's own
+ * `.md-nav__title { font-weight: 700 }` (0,1,0), which silently un-bolds any
+ * nav title rendered as a button. Leaving font-weight out lets the theme's
+ * rules apply and still overrides the user-agent default, since any author
+ * rule beats UA. */
 button.md-nav__link,
 button.md-nav__title {
   appearance: none;
@@ -490,6 +491,92 @@ h4.md-nav__title, h5.md-nav__title, h6.md-nav__title {
                 opacity 125ms 125ms,
                 visibility 0ms;
   }
+
+  /* Belt and braces for the mechanism itself. The panels are absolutely
+     positioned at translateX(100%), so this wrapper's scrollWidth is the width
+     of every panel in the tree (measured: 1210px for five levels at 242px).
+     Material gives it `overflow: hidden`, which hides that overflow but leaves
+     the box SCROLLABLE — so anything that scrolls an element into view drags
+     the whole drawer sideways, which is what made the finding look like
+     "the submenu items disappear".
+
+     `clip` is the same painting behaviour with no scroll container, so the
+     browser cannot move it at all — no focus reveal, no scrollIntoView, no
+     anchor jump. The rules above should already keep focus out of those panels;
+     this makes the failure mode unreachable rather than merely unused. Browsers
+     without `overflow: clip` ignore the declaration and keep Material's
+     `hidden`. Drawer breakpoint only: on desktop this wrapper is the sidebar's
+     real scroll container.
+
+     Both axes, not just overflow-x: per CSS Overflow 3, `clip` on one axis
+     computes back to `hidden` unless the other axis is also `clip`, so
+     `overflow-x: clip` alone silently does nothing here (verified — the box
+     stayed scrollable). Material already has this wrapper at `overflow: hidden`
+     inside the drawer; the vertical scrolling is done by
+     `.md-nav--primary .md-nav__title ~ .md-nav__list`, which is untouched. */
+  .md-sidebar--primary .md-sidebar__scrollwrap {
+    overflow: clip;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Drawer panel headers (Ablr 1.3.1 "Visual heading text is not marked as
+ * heading", Serious).
+ *
+ * overrides/partials/{nav-item,toc}.html split each drawer panel's header into
+ * the two things it actually is: an icon-only back <button> and a real heading.
+ * Material's own geometry makes this free — `.md-nav--primary .md-nav__title`
+ * is a 5.6rem box with `padding: 3rem .8rem .2rem`, so the title text sits at
+ * the bottom and the chevron is absolutely positioned in the empty 3rem above
+ * it. The two never overlapped; they were just wrapped in one control.
+ *
+ * The button is given an explicit 2.2rem (44px) box so the target is
+ * comfortably over the WCAG 2.5.8 minimum, and the chevron inside it is
+ * switched to static flow so it centres in that box instead of positioning
+ * itself against .md-nav__title — which lands it back on exactly the pixels it
+ * occupied before (12px, 12px), i.e. no visual change at all.
+ * ------------------------------------------------------------------------- */
+
+.md-nav--primary .md-nav__title--back .md-nav__back-button {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  position: absolute;
+  top: 0.1rem;
+  height: 2.2rem;
+  width: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[dir="ltr"] .md-nav--primary .md-nav__title--back .md-nav__back-button {
+  left: 0.1rem;
+}
+
+[dir="rtl"] .md-nav--primary .md-nav__title--back .md-nav__back-button {
+  right: 0.1rem;
+}
+
+/* Material positions this chevron absolutely against .md-nav__title. Inside the
+ * button it has to flow normally, or it ignores the button entirely. */
+.md-nav--primary .md-nav__title--back .md-nav__back-button .md-nav__icon {
+  position: static;
+  margin: 0;
+  height: 1.2rem;
+  width: 1.2rem;
+}
+
+/* Material sets cursor:pointer on .md-nav__title because upstream the whole box
+ * is a <label>. Both of our title boxes are inert <div>s now — only the back
+ * button inside them is clickable. */
+.md-nav--primary .md-nav__title {
+  cursor: auto;
 }
 
 /* ---------------------------------------------------------------------------
@@ -605,6 +692,7 @@ h4.md-nav__title, h5.md-nav__title, h6.md-nav__title {
 /* Focus indicator for the new buttons, matching the existing nav treatment. */
 button.md-nav__link:focus-visible,
 button.md-nav__title:focus-visible,
+.md-nav__back-button:focus-visible,
 .md-nav__close-button:focus-visible {
   outline: 2px solid #FFD600;
   outline-offset: -2px;

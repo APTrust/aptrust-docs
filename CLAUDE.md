@@ -151,6 +151,52 @@ Two consequences that must not be "cleaned up":
   `overrides/main.html` is for; without it the first/last calculation points at a
   hidden panel and Tab walks straight out of the drawer.
 
+### Every drawer panel needs a heading — the panel header is two elements
+
+Ablr's 1.3.1 "Visual heading text is not marked as heading" finding. Upstream
+makes a panel's whole 5.6rem header one `<label for>`, and an earlier fix here
+made it one `<button>` — either way the panel's visible title announced as a
+control, not a heading. Combined with the reflow rules above (which hide every
+covered panel), that left the open drawer exposing **no headings at all** on any
+page inside a section: rotor navigation in the sidebar was simply dead.
+
+`nav-item.html` and `toc.html` now split the header the same way `nav.html`
+already splits the root drawer title:
+
+| Part | Element | Why |
+|---|---|---|
+| back control | icon-only `<button class="md-nav__back-button">`, `aria-label="Back to <parent>"` | Material already draws the chevron as an absolutely-positioned 1.2rem icon inside the header's 3rem of top padding, so it was never on the same line as the title text — only wrapped in the same control. |
+| panel title | real `<h2>`–`<h6>` | Same level the desktop section header for that item uses (`h{level+2}`, capped at h6), so the two can never disagree. |
+
+`extra.css` gives the button an explicit 2.2rem (44px) box for WCAG 2.5.8 and
+switches the chevron inside it to static flow so it centres there instead of
+positioning against `.md-nav__title` — which lands it on exactly the pixels it
+occupied before. **The drawer is visually identical**; only the semantics moved.
+
+The heading must never end up inside the button again: `check.mjs` asserts both
+that the open drawer exposes at least one heading (`drawer-without-heading`) and
+that no exposed heading sits inside a control (`drawer-heading-inside-control`).
+
+### Do not let `.md-sidebar__scrollwrap` stay scrollable in the drawer
+
+This is the *mechanism* behind the reflow finding, and it is worth understanding
+separately from the fix. The nested panels are absolutely positioned at
+`translateX(100%)`, so the wrapper's `scrollWidth` is the width of every panel in
+the tree — measured at 1210px for five levels. Material sets `overflow: hidden`
+on it, which hides that overflow but leaves the box **scrollable**: anything that
+reveals an element (focus, `scrollIntoView`, an anchor jump) drags the entire
+drawer sideways. Setting `wrap.scrollLeft = 300` by hand moved the whole nav to
+`x = -387`.
+
+`extra.css` therefore sets `overflow: clip` on it at the drawer breakpoint — same
+painting, no scroll container, so the browser cannot move it at all. It must be
+the shorthand: per CSS Overflow 3, `clip` on one axis computes back to `hidden`
+unless the other axis is also `clip`, so `overflow-x: clip` alone silently does
+nothing (this was tried first and measured as a no-op). Vertical scrolling in the
+drawer is done by `.md-nav--primary .md-nav__title ~ .md-nav__list`, which is
+untouched; on desktop this wrapper is the sidebar's real scroll container, so the
+rule is scoped to `max-width: 76.234375em`.
+
 ### Overridden partials are forks — re-diff them on upgrade
 
 `overrides/partials/{nav,nav-item,toc,header}.html` are copies of
@@ -199,6 +245,9 @@ reader speaks. At 1280px and at 375px:
 - Open the drawer: focus lands on the first control of the panel that is on
   screen — **Close** at the root, the **back button** inside a section panel.
   Tab stays trapped inside, Escape closes and returns focus to the hamburger.
+- Rotor → Headings **inside the open drawer** lists exactly one heading: the
+  title of the panel on screen. Walking back with the ← button walks the heading
+  back up too ("Preservation Actions" → "User Guide" → the site name).
 - In the drawer at 320px, Tab all the way round: every stop must be on a control
   you can see, and the visible panel must never scroll itself out of view.
 - The sidebar logo is silent (decorative); the header logo still announces as the

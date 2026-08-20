@@ -52,6 +52,9 @@ Assertions:
 | `aria-expanded-on-nav` | Not an allowed attribute on `role="navigation"`; Material ships it by default. |
 | `aria-expanded-stale` / `toggle-no-state` | A disclosure button whose `aria-expanded` disagrees with its checkbox announces the wrong state. |
 | `focusable-in-aria-hidden` | AT skips it while the keyboard still lands on it. |
+| `drawer-without-heading` / `drawer-heading-inside-control` | WCAG 1.3.1. Every drawer panel has a visible title, so an open drawer exposing no heading means that title is announcing as something else — the "visual heading text is not marked as heading" finding. This regressed once: the panel header used to be one big `<button>`, so once the reflow rules hid the covered root panel there was no heading left in the sidebar at all. |
+| `drawer-close-button-count` | Each panel carries its own Close button because an open panel covers the one below it. Exactly one must be on screen — none means no visible way out of the drawer, more than one means a covered panel is leaking through. |
+| `drawer-scrolled-sideways` | The panels sit off-canvas inside a wrapper whose `scrollWidth` spans all of them, so a horizontal scroll there *is* the reflow failure. Revealing a focused element must never move it. |
 | `tabbable-offscreen-in-drawer` / `tabbable-covered-in-drawer` | WCAG 1.4.10 (Reflow). With the drawer open, every tabbable sidebar control must be on screen *and* be the topmost element at its own centre. Material parks collapsed drawer panels off-canvas with a transform and lets an open panel cover its parent, hiding neither from the tab order — so the keyboard walked through ~200 controls the user could not see. Each element is `scrollIntoView`'d first, so an item merely below the fold of a scrollable list is not a failure; only one that cannot be scrolled to, or that something is painted over, is. |
 
 ## report/
