@@ -1,5 +1,8 @@
 mkdocs
-mkdocs-material
+# Pinned: overrides/partials/{nav,nav-item,toc}.html are forked from this
+# version's templates. Re-diff them against the installed theme before
+# bumping — see the header comment in each override.
+mkdocs-material==9.6.7
 mkdocs-monorepo-plugin
 pymdown-extensions
 markdown-include

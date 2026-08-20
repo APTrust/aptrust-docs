@@ -1,0 +1,70 @@
+{#-
+  OVERRIDE of mkdocs-material 9.6.7 partials/nav.html.
+
+  Upstream md5: b464efbf75d9c0e7fe584fd2182dc1bb — re-diff against the installed
+  theme after any mkdocs-material upgrade (requirements.txt pins 9.6.7 for this
+  reason). Only the drawer-title block differs from upstream; everything else is
+  verbatim.
+
+  WHY (Ablr 1.3.1 "Incorrect semantic markup", Serious):
+
+  Upstream renders the sidebar's site title as
+
+      <label class="md-nav__title" for="__drawer">
+        <a class="md-logo" aria-label="{{ site_name }}" title="{{ site_name }}">…</a>
+        {{ site_name }}
+      </label>
+
+  Three problems, all reported by the audit:
+
+  1. It looks like a heading but is a <label> bound to the drawer checkbox, so
+     assistive tech announces it as "clickable" — and on desktop, where the
+     drawer does not exist, activating it does nothing. "Announces as Clickable,
+     but doesn't redirect the user."
+  2. A previous fix bolted role="heading" onto the <label>. ARIA in HTML permits
+     NO role on <label>, so that markup is invalid and AT may discard it — which
+     is exactly what the re-audit found. Semantics have to come from a real
+     heading element, not from an ARIA patch.
+  3. The nested logo <a> carries the same accessible name as the label text, so
+     the title announced the site name twice; and its href is the site root, so
+     on the home page it is a link to the page you are already on — literally
+     the audit's "an <a> tag that doesn't take the user anywhere".
+
+  The fix: a real <h2> for the title, and a decorative logo. The site root stays
+  reachable for AT from the header logo link and the "Home" tab, both of which
+  are already exposed — the sidebar copy was a third, redundant announcement.
+
+  The Close button is real markup here rather than JS-injected (it used to be
+  built in overrides/main.html) so it exists in the served HTML on first paint
+  and survives navigation.instant without re-running anything.
+-#}
+{% import "partials/nav-item.html" as item with context %}
+{% set class = "md-nav md-nav--primary" %}
+{% if "navigation.tabs" in features %}
+  {% set class = class ~ " md-nav--lifted" %}
+{% endif %}
+{% if "toc.integrate" in features %}
+  {% set class = class ~ " md-nav--integrated" %}
+{% endif %}
+<nav class="{{ class }}" aria-label="{{ lang.t('nav') }}" data-md-level="0">
+  <div class="md-nav__title">
+    <a href="{{ config.extra.homepage | d(nav.homepage.url, true) | url }}" class="md-nav__button md-logo" data-md-component="logo" aria-hidden="true" tabindex="-1">
+      {% include "partials/logo.html" %}
+    </a>
+    <h2 class="md-nav__title-label">{{ config.site_name }}</h2>
+  </div>
+  <button type="button" class="md-nav__close-button" aria-label="Close navigation menu" data-md-component="nav-close">
+    Close
+  </button>
+  {% if config.repo_url %}
+    <div class="md-nav__source">
+      {% include "partials/source.html" %}
+    </div>
+  {% endif %}
+  <ul class="md-nav__list" data-md-scrollfix>
+    {% for nav_item in nav %}
+      {% set path = "__nav_" ~ loop.index %}
+      {{ item.render(nav_item, path, 1) }}
+    {% endfor %}
+  </ul>
+</nav>

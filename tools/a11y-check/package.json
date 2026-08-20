@@ -1,0 +1,14 @@
+{
+  "name": "aptrust-docs-a11y-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Accessibility regression check for docs.aptrust.org (see README.md)",
+  "scripts": {
+    "a11y": "node check.mjs",
+    "setup": "npm install && npx playwright install chromium"
+  },
+  "dependencies": {
+    "axe-core": "^4.10.2",
+    "playwright": "^1.49.0"
+  }
+}

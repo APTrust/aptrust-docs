@@ -324,3 +324,209 @@
   --md-code-hl-variable-color: rgba(0, 0, 0, 0.65);
   --md-code-hl-comment-color: rgba(0, 0, 0, 0.65);
 }
+
+/* ---------------------------------------------------------------------------
+ * Sidebar semantics (Ablr 1.3.1 "Incorrect semantic markup", Serious).
+ *
+ * overrides/partials/nav.html, nav-item.html and toc.html replace Material's
+ * CSS-only <label>/checkbox sidebar chrome with elements that mean what they
+ * look like: real <h2>-<h6> for the visual headings, real <button> for the
+ * controls. Every Material class is preserved, so all of the theme's own
+ * layout, colour and breakpoint rules still apply and the sidebar is visually
+ * unchanged. These rules exist ONLY to strip the user-agent defaults that come
+ * with <button> and <h*> and that <label> did not have.
+ *
+ * Do not "simplify" this by going back to <label> — see the comment block in
+ * overrides/partials/nav-item.html for why attribute patching cannot work.
+ * ------------------------------------------------------------------------- */
+
+/* <button> UA reset. inherit font/colour so the buttons render exactly as the
+ * labels did; width/text-align restore the block-level layout <label> had.
+ *
+ * NOTE: font longhands, not the `font` shorthand. The shorthand also sets
+ * font-weight, and at specificity 0,1,1 it beat Material's own
+ * `.md-nav__title { font-weight: 700 }` (0,1,0) — which silently un-bolded the
+ * drawer's back buttons. Leaving font-weight out lets the theme's rules apply
+ * and still overrides the user-agent default, since any author rule beats UA. */
+button.md-nav__link,
+button.md-nav__title {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+button.md-nav__link {
+  cursor: pointer;
+}
+
+/* <h*> UA reset. Material sizes nav text from .md-nav__link / .md-nav__title;
+ * heading elements would otherwise bring their own font-size and margins.
+ * font-weight is deliberately NOT reset: the UA default for h1-h6 is bold,
+ * which is exactly what Material already specifies for .md-nav__title and for
+ * .md-nav__item--section > .md-nav__link. Resetting it dropped the table of
+ * contents heading to weight 400. */
+.md-nav__title-label,
+h1.md-nav__link, h2.md-nav__link, h3.md-nav__link,
+h4.md-nav__link, h5.md-nav__link, h6.md-nav__link,
+h1.md-nav__title, h2.md-nav__title, h3.md-nav__title,
+h4.md-nav__title, h5.md-nav__title, h6.md-nav__title {
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+/* The site title inside the drawer header. Material's .md-nav__title supplies
+ * the box; the <h2> inside it is purely semantic and must not add its own. */
+.md-nav__title-label {
+  display: inline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Section items render as two elements — see the long comment in
+ * overrides/partials/nav-item.html. Material scopes every one of its
+ * .md-nav__item--section rules to min-width:76.25em, so a section is an inert
+ * heading only on desktop; inside the drawer it is a real slide-in panel
+ * toggle with a chevron. Show exactly one of the pair at each width.
+ * display:none (rather than visually-hiding) is deliberate: it takes the
+ * inapplicable element out of the accessibility tree entirely, so a screen
+ * reader never meets the same item twice with two different roles. */
+@media screen and (max-width: 76.234375em) {
+  .md-nav__link--section {
+    display: none;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-nav__link--section-toggle {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Compatibility shims for Material rules keyed on [for=...].
+ *
+ * Several of Material's own rules select on the literal attribute values
+ * `[for=__drawer]` and `[for=__toc]`. Those elements are no longer <label>s and
+ * no longer carry `for`, so the rules stopped matching. Each shim below
+ * reproduces one upstream rule verbatim against the equivalent class, at the
+ * same breakpoint. Keep them in sync with the theme when re-diffing the
+ * partials after an upgrade.
+ *
+ * (The `.md-nav--integrated` variants of the __toc rules are deliberately not
+ * reproduced — they only apply with the toc.integrate feature, which this site
+ * does not enable.)
+ * ------------------------------------------------------------------------- */
+
+/* --- header toggles (overrides/partials/header.html) --- */
+
+/* was: @media (min-width:76.25em){.md-header__button[for=__drawer]{display:none}}
+   Without this the hamburger stays visible on desktop, where there is no
+   drawer to open. */
+@media screen and (min-width: 76.25em) {
+  .md-header__button[data-md-toggle-target="__drawer"] {
+    display: none;
+  }
+}
+
+/* was: @media (min-width:60em){.md-header__button[for=__search]{display:none}}
+   Above 60em the search field is shown inline, so the icon that opens the
+   search overlay is redundant. */
+@media screen and (min-width: 60em) {
+  .md-header__button[data-md-toggle-target="__search"] {
+    display: none;
+  }
+}
+
+/* was: .no-js .md-header__button[for=__search]{display:none} */
+.no-js .md-header__button[data-md-toggle-target="__search"] {
+  display: none;
+}
+
+/* was: [dir=rtl] .md-header__button[for=__search] svg{transform:scaleX(-1)} */
+[dir="rtl"] .md-header__button[data-md-toggle-target="__search"] svg {
+  transform: scaleX(-1);
+}
+
+/* --- sidebar (overrides/partials/nav.html, nav-item.html, toc.html) --- */
+
+/* was: .md-nav--primary .md-nav__link[for=__toc]{display:none} */
+.md-nav--primary .md-nav__link--toc {
+  display: none;
+}
+
+/* was: .md-nav--primary .md-nav__link[for=__toc]~.md-nav{display:none} */
+.md-nav--primary .md-nav__link--toc ~ .md-nav {
+  display: none;
+}
+
+/* was: .md-nav--primary .md-nav__link[for=__toc] .md-icon:after{...} */
+.md-nav--primary .md-nav__link--toc .md-icon::after {
+  background-color: currentcolor;
+  display: block;
+  height: 100%;
+  -webkit-mask-image: var(--md-toc-icon);
+  mask-image: var(--md-toc-icon);
+  width: 100%;
+}
+
+@media screen and (max-width: 59.984375em) {
+  /* was: .md-nav--primary .md-nav__link[for=__toc]{display:flex} */
+  .md-nav--primary .md-nav__link--toc {
+    display: flex;
+  }
+  .md-nav--primary .md-nav__link--toc .md-icon::after {
+    content: "";
+  }
+  /* was: .md-nav--primary .md-nav__link[for=__toc]+.md-nav__link{display:none} */
+  .md-nav--primary .md-nav__link--toc + .md-nav__link {
+    display: none;
+  }
+  /* was: .md-nav--primary .md-nav__link[for=__toc]~.md-nav{display:flex} */
+  .md-nav--primary .md-nav__link--toc ~ .md-nav {
+    display: flex;
+  }
+}
+
+@media screen and (min-width: 60em) {
+  /* was: .md-nav--secondary .md-nav__title[for=__toc]{scroll-snap-align:start} */
+  .md-nav--secondary .md-nav__title--heading {
+    scroll-snap-align: start;
+  }
+}
+
+@media screen and (max-width: 76.234375em) {
+  /* was: .md-nav--primary .md-nav__title[for=__drawer]{...} — the indigo drawer
+     header. `> .md-nav__title` is the drawer header specifically; nested panel
+     titles are deeper and keep their own (white) treatment from the rule above. */
+  .md-nav--primary > .md-nav__title {
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+    font-weight: 700;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  /* was: .md-nav--primary .md-nav__title[for=__drawer]{scroll-snap-align:start} */
+  .md-nav--primary > .md-nav__title {
+    scroll-snap-align: start;
+  }
+}
+
+/* Focus indicator for the new buttons, matching the existing nav treatment. */
+button.md-nav__link:focus-visible,
+button.md-nav__title:focus-visible,
+.md-nav__close-button:focus-visible {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}

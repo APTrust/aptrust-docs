@@ -45,7 +45,9 @@ docs/
     └── extra.css         # Search result site-label badges, external link indicators
 overrides/
 ├── main.html             # Theme extension — Matomo analytics, WCAG 2.2 AA patches
-└── partials/             # Overridden template partials
+└── partials/             # Overridden template partials (forked from mkdocs-material)
+tools/
+└── a11y-check/           # Accessibility regression check — see its README
 .github/
 └── workflows/
     └── build-and-deploy.yml
@@ -91,6 +93,33 @@ git clone --depth 1 https://github.com/APTrust/userguide      repos/userguide
 mkdocs serve     # live preview at http://127.0.0.1:8000
 mkdocs build     # write static site to ./site/
 ```
+
+Note: `mkdocs serve` does **not** watch `overrides/`. If you edit a template
+there, touch a file under `docs/` or restart the server to see the change.
+
+## Accessibility
+
+The site is audited externally against WCAG 2.2 AA. The sidebar and header
+chrome are rendered by forked Material partials in `overrides/partials/` so that
+visual headings are real heading elements and controls are real buttons —
+Material's stock templates build both out of `<label>` + hidden-checkbox pairs,
+which announce to screen readers as unnamed "clickable" elements.
+
+Because those partials are forks, `requirements.txt` pins `mkdocs-material` to
+the exact version they were taken from. Re-diff them against the installed theme
+before bumping it; each file's header comment carries the upstream checksum.
+
+Before shipping a change that touches the header, sidebar, or `overrides/`, run:
+
+```bash
+cd tools/a11y-check && npm run a11y
+```
+
+It sweeps 7 pages at 3 viewport states with axe-core plus assertions read from
+Chrome's real accessibility tree, and writes an evidence pack to `report/`.
+See [tools/a11y-check/README.md](tools/a11y-check/README.md), and the
+**Accessibility** section of `CLAUDE.md` for the design rationale and the manual
+VoiceOver checklist that automation cannot replace.
 
 ## Adding a sub-repo
 

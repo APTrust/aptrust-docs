@@ -1,0 +1,60 @@
+{#-
+  OVERRIDE of mkdocs-material 9.6.7 partials/toc.html.
+
+  Upstream md5: 1b9fa69f3cccd294ca73a6500de37a71 — re-diff against the installed
+  theme after any mkdocs-material upgrade (requirements.txt pins 9.6.7 for this
+  reason).
+
+  WHY (Ablr 1.3.1 "Incorrect semantic markup", Serious):
+
+  Upstream renders this partial's title as a single <label class="md-nav__title"
+  for="__toc">, but the partial is included TWICE per page and the title means
+  something different in each place:
+
+    * base.html includes it in .md-sidebar--secondary. On desktop that is the
+      visible "Table of contents" header — a heading, with no behavior. As a
+      <label> it announced as "clickable" and did nothing, which is the reported
+      finding.
+
+    * nav-item.html includes it inside the primary nav for the current page.
+      There it is the mobile drawer's back control — genuinely interactive, and
+      correctly a button.
+
+  One element cannot be both, so the two includes now render different markup.
+  Whichever one is not applicable at the current viewport is display:none, which
+  removes it from the accessibility tree entirely, so AT never encounters a
+  duplicate. The drawer copy also carries the id that nav-item.html's toggle
+  button points at with aria-controls; the sidebar copy must not repeat that id.
+
+  `toc_in_drawer` is set by nav-item.html via a {% with %} block; base.html's include
+  leaves it undefined, hence the default(false).
+-#}
+{% set title = lang.t("toc") %}
+{% if config.mdx_configs.toc and config.mdx_configs.toc.title %}
+  {% set title = config.mdx_configs.toc.title %}
+{% endif %}
+{% set in_drawer = toc_in_drawer | default(false) %}
+<nav class="md-nav md-nav--secondary" {% if in_drawer %}id="__toc_content" {% endif %}aria-label="{{ title | e }}">
+  {% set toc = page.toc %}
+  {% set first = toc | first %}
+  {% if first and first.level == 1 %}
+    {% set toc = first.children %}
+  {% endif %}
+  {% if toc %}
+    {% if in_drawer %}
+      <button type="button" class="md-nav__title md-nav__title--back" data-md-nav-back="__toc">
+        <span class="md-nav__icon md-icon"></span>
+        {{ title }}
+      </button>
+    {% else %}
+      <h2 class="md-nav__title md-nav__title--heading">
+        {{ title }}
+      </h2>
+    {% endif %}
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      {% for toc_item in toc %}
+        {% include "partials/toc-item.html" %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+</nav>

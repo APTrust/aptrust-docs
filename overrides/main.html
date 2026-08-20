@@ -79,117 +79,90 @@
             }
         });
 
-        /* WCAG 4.1.2: header icon-button <label> elements need aria-label.
-           title is not reliably exposed as an accessible name for interactive
-           elements by screen readers. Drawer and search have no title at all.
-           Palette labels re-set every navigation because their title flips
-           between "Switch to dark mode" and "Switch to light mode". */
-        [
-            { sel: 'label.md-header__button[for="__drawer"]', fallback: 'Open navigation' },
-            { sel: 'label.md-header__button[for="__search"]', fallback: 'Open search'     }
-        ].forEach(function (item) {
-            var el = document.querySelector(item.sel);
-            if (el) el.setAttribute('aria-label', el.getAttribute('title') || item.fallback);
-        });
-        document.querySelectorAll('label.md-header__button[for^="__palette"]').forEach(function (el) {
-            var t = el.getAttribute('title');
-            if (t) el.setAttribute('aria-label', t);
+        /* Header toggles (drawer, search).
+
+           overrides/partials/header.html renders these as real <button> elements
+           instead of Material's <label for="__drawer"> / <label for="__search">.
+           The hidden checkbox stays the state holder, so all of Material's
+           CSS-only open/close behaviour is unchanged — these handlers are only
+           the bridge, and they keep aria-expanded truthful.
+
+           This replaced an earlier patch that set aria-label on the <label>
+           elements. aria-label is prohibited on <label> (it maps to generic,
+           which permits no name), so axe reported a serious aria-prohibited-attr
+           violation on every page and screen readers still had nothing useful to
+           announce — the same "ARIA cannot repair the wrong element" mistake the
+           sidebar finding was about. */
+        document.querySelectorAll('.md-header__button[data-md-toggle-target]').forEach(function (btn) {
+            var cb = document.getElementById(btn.getAttribute('data-md-toggle-target'));
+            if (!cb) return;
+            btn.setAttribute('aria-expanded', String(cb.checked));
+            if (btn.dataset.togglePatched) return;
+            btn.dataset.togglePatched = '1';
+            /* click() the checkbox rather than setting .checked: it fires the
+               same input/change events a real label click would, which is what
+               Material's own drawer and search observers listen for. */
+            btn.addEventListener('click', function () {
+                cb.click();
+                /* Material focuses the search field from its own listener bound
+                   to `header [for=__search]`. That selector used to match the
+                   header's search <label>; now that the header control is a
+                   <button>, it matches partials/search.html's overlay label
+                   instead, so Material's focus never fires for this button.
+                   Do it here rather than reintroducing a `for` attribute, which
+                   is not valid on <button>. */
+                if (cb.id === '__search' && cb.checked) {
+                    var input = document.querySelector('.md-search__input');
+                    if (input) input.focus();
+                }
+            });
+            cb.addEventListener('change', function () {
+                btn.setAttribute('aria-expanded', String(cb.checked));
+            });
         });
 
-        /* WCAG 1.1.1: SVGs inside labeled header controls are decorative — the
-           parent label's aria-label is the accessible name. Hide the SVGs so
-           screen readers don't announce them as unlabeled images. */
+        /* The palette toggles keep Material's markup. Their <input type="radio">
+           is only visually hidden (height:0;opacity:0), so it stays focusable and
+           in the accessibility tree, and Material already gives it a valid
+           aria-label — the palette was already accessible. The sibling <label> is
+           the visual icon only, so the prohibited aria-label an earlier patch put
+           on it is removed and it is marked decorative, leaving exactly one
+           control for AT instead of one control plus one nameless generic. */
+        document.querySelectorAll('label.md-header__button[for^="__palette"]').forEach(function (el) {
+            el.removeAttribute('aria-label');
+            el.setAttribute('aria-hidden', 'true');
+        });
+
+        /* WCAG 1.1.1: SVGs inside header controls are decorative — the control's
+           own aria-label is the accessible name. Hide the SVGs so screen readers
+           don't announce them as unlabeled images. */
         document.querySelectorAll(
             '.md-header__button svg, .md-search__icon svg'
         ).forEach(function (svg) {
             svg.setAttribute('aria-hidden', 'true');
         });
 
-        /* WCAG 2.1.1: keyboard access for Material's label-based toggles.
-           Material for MkDocs uses <label for="__drawer"> and <label for="__nav_*">
-           as CSS-only checkbox toggles. Labels are not keyboard-focusable by
-           default, so the hamburger menu and sidebar section toggles can't be
-           reached or activated without a mouse. The fix: add tabindex/role/keydown
-           to each label so keyboard and AT users can operate them. A data attribute
-           guards against duplicate listener attachment across instant navigations. */
-        function patchLabelToggle(label) {
-            if (label.dataset.kbPatched) return;
-            label.dataset.kbPatched = '1';
-            var cb = document.getElementById(label.getAttribute('for'));
-            label.setAttribute('tabindex', '0');
-            /* role="button" is not a valid ARIA role on <label> per the ARIA in
-               HTML spec — omit it. tabindex + aria-label + keydown preserve full
-               keyboard operability without the invalid role. */
-            if (cb) {
-                /* aria-expanded is not a global ARIA attribute — it is only valid
-                   on elements with specific roles (button, combobox, etc.). Since
-                   <label> cannot carry a role, aria-expanded is also disallowed.
-                   aria-controls IS a global attribute and is safe to keep. */
-                var navEl = label.parentElement && (
-                    label.parentElement.querySelector(':scope > nav.md-nav') ||
-                    label.parentElement.querySelector(':scope > ul.md-nav__list')
-                );
-                if (navEl) {
-                    if (!navEl.id) navEl.id = label.getAttribute('for') + '-content';
-                    label.setAttribute('aria-controls', navEl.id);
-                }
-            }
-            label.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (cb) cb.click();
-                }
-            });
-        }
+        /* The overlay backdrop (base.html's label.md-overlay[for="__drawer"]) is
+           decorative: it dims the page behind the open drawer and closes it on
+           click. It is deliberately hidden from assistive technology.
 
-        /* Target the header hamburger specifically — querySelector returns the
-           md-overlay label first in Material's DOM order, which would attach
-           role="button" to a <label>, an invalid ARIA combination. */
-        var drawerLabel = document.querySelector('label.md-header__button[for="__drawer"]');
-        if (drawerLabel) patchLabelToggle(drawerLabel);
-
-        /* WCAG 2.1.1 / 4.1.2: the overlay backdrop is a separate label[for="__drawer"]
-           that closes the drawer when activated. The ARIA in HTML spec does not allow
-           any role on <label>, so we add only tabindex + aria-label + keydown — no
-           role attribute. */
+           An earlier version gave it tabindex="0" + aria-label to make it a
+           keyboard-operable close control. That was wrong twice over: aria-label
+           is PROHIBITED on <label> (which has no role, so it maps to generic),
+           which axe reports as a serious aria-prohibited-attr violation on every
+           page; and being outside every landmark it also tripped the `region`
+           rule. It was also redundant — keyboard and AT users have two real
+           exits from the drawer already: the Close <button> at the top of the
+           sidebar (partials/nav.html) and the Escape handler in the focus trap
+           below. Mouse users keep the click-to-dismiss behaviour, which needs
+           no attributes at all. */
         var overlay = document.querySelector('label.md-overlay[for="__drawer"]');
-        if (overlay && !overlay.dataset.kbPatched) {
-            overlay.dataset.kbPatched = '1';
-            overlay.setAttribute('tabindex', '0');
-            overlay.setAttribute('aria-label', 'Close navigation drawer');
-            var overlayCb = document.getElementById('__drawer');
-            if (overlayCb) {
-                overlay.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        overlayCb.click();
-                    }
-                });
-            }
+        if (overlay) {
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.setAttribute('tabindex', '-1');
+            overlay.removeAttribute('aria-label');
         }
 
-        document.querySelectorAll('label[for^="__nav_"]').forEach(patchLabelToggle);
-
-        /* WCAG 2.1.1: the overlay backdrop can close the drawer but lives
-           outside .md-sidebar--primary, so it's unreachable by Tab from
-           inside the focus trap below. Add a real, visible <button> inside
-           the sidebar so keyboard and AT users always have an in-trap way
-           to close the drawer. */
-        (function () {
-            var title = document.querySelector('.md-sidebar--primary .md-nav__title[for="__drawer"]');
-            if (!title || title.dataset.closeBtnInjected) return;
-            title.dataset.closeBtnInjected = '1';
-            var closeBtn = document.createElement('button');
-            closeBtn.type = 'button';
-            closeBtn.className = 'md-nav__close-button';
-            closeBtn.setAttribute('aria-label', 'Close navigation menu');
-            closeBtn.textContent = 'Close';
-            closeBtn.addEventListener('click', function () {
-                var cb = document.getElementById('__drawer');
-                if (cb) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
-            });
-            title.insertAdjacentElement('afterend', closeBtn);
-        }());
 
         /* WCAG 2.1.1: scrollable nav list regions must be keyboard-reachable.
            Safari will not auto-scroll an overflow container to reveal a focused
@@ -216,26 +189,60 @@
             l.setAttribute('aria-current', 'page');
         });
 
-        /* WCAG 1.3.1: nav and TOC section titles are visually styled as headings
-           but lack heading semantics. Every .md-nav__title gets role="heading" —
-           the drawer title (for="__drawer") is the site title, so it gets
-           aria-level="1"; nested section/TOC titles get aria-level="2". The
-           drawer title's own close-toggle behaviour is now handled by the
-           dedicated Close button injected above, so it no longer needs to
-           double as an unlabeled interactive control here. Any non-navigating
-           <a> inside a title (href="#" or no href) is suppressed so it doesn't
-           announce as "Clickable" to screen readers without sending users
-           anywhere — the drawer title's logo link has a real href, so it is
-           unaffected and stays a normal focusable link. */
-        document.querySelectorAll('.md-nav__title').forEach(function (el) {
-            if (!el.getAttribute('role')) {
-                el.setAttribute('role', 'heading');
-                el.setAttribute('aria-level', el.getAttribute('for') === '__drawer' ? '1' : '2');
-            }
-            el.querySelectorAll('a[href="#"], a:not([href])').forEach(function (a) {
-                a.setAttribute('role', 'presentation');
-                a.setAttribute('aria-hidden', 'true');
-                a.setAttribute('tabindex', '-1');
+        /* Sidebar disclosure buttons.
+
+           overrides/partials/nav-item.html renders every real expand/collapse
+           control in the sidebar as <button aria-expanded aria-controls> instead
+           of Material's <label for="__nav_N">. That gives them a role and an
+           accessible name, which a <label> cannot have (ARIA in HTML permits no
+           role on <label>, so the previous attribute-patching approach could
+           never have worked). The hidden checkbox stays as the state holder so
+           all of Material's `:checked ~ .md-nav` CSS keeps working untouched —
+           these handlers are only the bridge between button and checkbox.
+
+           Section headers are NOT in this set. They are real <h3>/<h4> elements
+           with no aria-controls, are inert by design, and must stay that way. */
+        document.querySelectorAll('.md-nav__link--toggle[aria-controls]').forEach(function (btn) {
+            var cb = document.getElementById(btn.getAttribute('aria-controls').replace(/_content$/, ''));
+            if (!cb) return;
+            btn.setAttribute('aria-expanded', String(cb.checked));
+            if (btn.dataset.togglePatched) return;
+            btn.dataset.togglePatched = '1';
+            btn.addEventListener('click', function () {
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+                btn.setAttribute('aria-expanded', String(cb.checked));
+            });
+            /* Material's own code (and the back buttons below) can move the
+               checkbox without going through this button, so mirror it back. */
+            cb.addEventListener('change', function () {
+                btn.setAttribute('aria-expanded', String(cb.checked));
+            });
+        });
+
+        /* Mobile drawer "back" controls. Each nested panel and the in-drawer
+           table of contents has one; it closes its own panel. Rendered as a
+           <button> by nav-item.html/toc.html because it genuinely is a control —
+           unlike the section headers it sits next to. */
+        document.querySelectorAll('.md-nav__title--back[data-md-nav-back]').forEach(function (btn) {
+            if (btn.dataset.backPatched) return;
+            btn.dataset.backPatched = '1';
+            btn.addEventListener('click', function () {
+                var cb = document.getElementById(btn.getAttribute('data-md-nav-back'));
+                if (cb) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+            });
+        });
+
+        /* Drawer Close button (real markup in overrides/partials/nav.html). The
+           overlay backdrop can also close the drawer, but it lives outside
+           .md-sidebar--primary and so is unreachable by Tab from inside the
+           focus trap below — this is the in-trap way out. */
+        document.querySelectorAll('.md-nav__close-button').forEach(function (btn) {
+            if (btn.dataset.closePatched) return;
+            btn.dataset.closePatched = '1';
+            btn.addEventListener('click', function () {
+                var cb = document.getElementById('__drawer');
+                if (cb) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
             });
         });
 
@@ -258,7 +265,7 @@
                otherwise return the md-overlay label first in Material's DOM
                order, which is hidden (offsetParent null) whenever the drawer
                is closed, sending focus to an invisible element on close. */
-            var dLabel = document.querySelector('label.md-header__button[for="__drawer"]');
+            var dLabel = document.querySelector('.md-header__button[data-md-toggle-target="__drawer"]');
             if (!drawerCb || !document.querySelector('.md-sidebar--primary') || drawerCb.dataset.trapSetup) return;
             drawerCb.dataset.trapSetup = '1';
 
@@ -277,22 +284,36 @@
             function setTabindex(open) {
                 var sidebar = getSidebar();
                 if (!sidebar) return;
-                sidebar.querySelectorAll('a, button').forEach(function (el) {
-                    open ? el.removeAttribute('tabindex') : el.setAttribute('tabindex', '-1');
-                });
-                sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
-                    l.setAttribute('tabindex', open ? '0' : '-1');
-                });
-                /* WCAG 1.3.1: also hide the off-screen drawer from VoiceOver and
-                   other AT. tabindex="-1" only removes keyboard tab stops — it does
-                   not hide content from the screen-reader virtual cursor. aria-hidden
+
+                /* WCAG 1.3.1: hide the off-screen drawer from VoiceOver and other
+                   AT. tabindex="-1" only removes keyboard tab stops — it does not
+                   hide content from the screen-reader virtual cursor. aria-hidden
                    suppresses the entire sidebar from AT when it is off-screen on
-                   mobile, preventing VoiceOver from announcing invisible content. */
+                   mobile, preventing VoiceOver from announcing invisible content.
+
+                   This MUST run before the per-element pass below. That pass asks
+                   whether each element sits inside an aria-hidden subtree, and
+                   while the drawer is closed the sidebar itself IS that subtree —
+                   so doing it in the other order matched every element, forced
+                   tabindex="-1" on all of them, and left the opened drawer with
+                   nothing focusable at all (no initial focus, dead focus trap). */
                 if (open) {
                     sidebar.removeAttribute('aria-hidden');
                 } else {
                     sidebar.setAttribute('aria-hidden', 'true');
                 }
+
+                sidebar.querySelectorAll('a, button').forEach(function (el) {
+                    /* The sidebar logo is decorative (see partials/nav.html): it
+                       duplicates the header's home link and is aria-hidden, so it
+                       must keep tabindex="-1" even when the drawer opens —
+                       a focusable node inside aria-hidden is itself a violation. */
+                    if (el.closest('[aria-hidden="true"]')) {
+                        el.setAttribute('tabindex', '-1');
+                        return;
+                    }
+                    open ? el.removeAttribute('tabindex') : el.setAttribute('tabindex', '-1');
+                });
             }
 
             var trapHandler = null;
@@ -313,7 +334,7 @@
                     var sidebar = getSidebar();
                     if (!sidebar) return;
                     var f = Array.from(sidebar.querySelectorAll(
-                        'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
+                        'a:not([tabindex="-1"]), button:not([tabindex="-1"])'
                     )).filter(function (el) { return el.offsetParent !== null; });
                     if (!f.length) return;
                     if (e.shiftKey && document.activeElement === f[0]) {
@@ -331,7 +352,7 @@
                     var sidebar = getSidebar();
                     if (!sidebar) return;
                     var focusable = Array.from(sidebar.querySelectorAll(
-                        'a:not([tabindex="-1"]), button:not([tabindex="-1"]), label[tabindex="0"]'
+                        'a:not([tabindex="-1"]), button:not([tabindex="-1"])'
                     )).filter(function (el) { return el.offsetParent !== null; });
                     if (focusable.length) focusable[0].focus();
                 }, 280);
@@ -361,10 +382,11 @@
                     var sidebar = getSidebar();
                     if (sidebar) {
                         sidebar.querySelectorAll('[tabindex="-1"]').forEach(function (el) {
+                            /* Leave the decorative logo alone — it is inside an
+                               aria-hidden subtree and must stay unfocusable at
+                               every width (see setTabindex above). */
+                            if (el.closest('[aria-hidden="true"]')) return;
                             el.removeAttribute('tabindex');
-                        });
-                        sidebar.querySelectorAll('label[data-kb-patched]').forEach(function (l) {
-                            l.setAttribute('tabindex', '0');
                         });
                         sidebar.removeAttribute('aria-hidden');
                     }

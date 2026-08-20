@@ -1,0 +1,252 @@
+{#-
+  OVERRIDE of mkdocs-material 9.6.7 partials/nav-item.html.
+
+  Upstream md5: 31882ce4492c5a17486c271544812f4f — re-diff against the installed
+  theme after any mkdocs-material upgrade (requirements.txt pins 9.6.7 for this
+  reason). Changes from upstream are marked APTRUST below; everything else is
+  verbatim.
+
+  WHY (Ablr 1.3.1 "Incorrect semantic markup", Serious + 4.1.2 name/role/value):
+
+  Material builds the whole sidebar out of CSS-only <label>/checkbox pairs. That
+  makes two structurally different things look identical in the markup, and the
+  audit caught the confusion:
+
+    * SECTION HEADERS ("User Guide", "Depositing", …) are pure visual headings.
+      Upstream deliberately renders them inert — this template leaves their
+      tabindex empty (`{% set tabindex = "0" if not is_section %}`) and the
+      stylesheet sets `pointer-events: none` on them. They are not controls and
+      have no behavior at any viewport width; the checkbox they name changes
+      nothing when toggled. But they were still <label for=…>, so AT announced
+      them as "clickable" while activation did nothing — the exact finding.
+
+      A previous fix in overrides/main.html made this worse: it ran
+      `querySelectorAll('label[for^="__nav_"]')` and forced tabindex="0" onto
+      every match, sections included, putting inert no-op "clickables" into the
+      keyboard tab order and undoing upstream's deliberate choice. Section
+      headers must never be given a tabindex, a role, or an event handler.
+
+      Fix: render them as real heading elements. Level is derived from nav depth
+      so the sidebar nests correctly under the <h2> site title in nav.html with
+      no skipped levels. Keeping the .md-nav__link class preserves Material's
+      font-weight and pointer-events rules, so nothing changes visually.
+
+    * NESTED TOGGLES ("DART", "Workers", …) are genuine disclosure controls that
+      really do expand and collapse. As <label> elements they exposed no role
+      and no accessible name (the text sits in a child <span>, which the
+      accessibility tree reports as a nameless generic). ARIA in HTML permits no
+      role on <label>, so this could not be patched with attributes either.
+
+      Fix: render them as real <button aria-expanded aria-controls>. The hidden
+      checkbox stays as the state holder so every one of Material's
+      `:checked ~ .md-nav` CSS rules keeps working untouched; the click handler
+      and aria-expanded sync live in overrides/main.html.
+
+  The nested <nav> also carried aria-expanded upstream, which is not an allowed
+  attribute on role="navigation" — it moves to the button, where it belongs.
+-#}
+{% macro render_status(nav_item, type) %}
+  {% set class = "md-status md-status--" ~ type %}
+  {% if config.extra.status and config.extra.status[type] %}
+    <span class="{{ class }}" title="{{ config.extra.status[type] }}">
+    </span>
+  {% else %}
+    <span class="{{ class }}"></span>
+  {% endif %}
+{% endmacro %}
+{% macro render_content(nav_item, ref = nav_item) %}
+  {% if nav_item.meta and nav_item.meta.icon %}
+    {% include ".icons/" ~ nav_item.meta.icon ~ ".svg" %}
+  {% endif %}
+  <span class="md-ellipsis">
+    {{ ref.title }}
+    {% if nav_item.meta and nav_item.meta.subtitle %}
+      <br>
+      <small>{{ nav_item.meta.subtitle }}</small>
+    {% endif %}
+  </span>
+  {% if nav_item.meta and nav_item.meta.status %}
+    {{ render_status(nav_item, nav_item.meta.status) }}
+  {% endif %}
+{% endmacro %}
+{% macro render_pruned(nav_item, ref = nav_item) %}
+  {% set first = nav_item.children | first %}
+  {% if first and first.children %}
+    {{ render_pruned(first, ref) }}
+  {% else %}
+    <a href="{{ first.url | url }}" class="md-nav__link">
+      {{ render_content(ref) }}
+      {% if nav_item.children | length > 0 %}
+        <span class="md-nav__icon md-icon"></span>
+      {% endif %}
+    </a>
+  {% endif %}
+{% endmacro %}
+{% macro render(nav_item, path, level) %}
+  {% set class = "md-nav__item" %}
+  {% if nav_item.active %}
+    {% set class = class ~ " md-nav__item--active" %}
+  {% endif %}
+  {% if nav_item.pages %}
+    {% if page in nav_item.pages %}
+      {% set nav_item = page %}
+    {% endif %}
+  {% endif %}
+  {% if nav_item.children %}
+    {% set indexes = [] %}
+    {% if "navigation.indexes" in features %}
+      {% for nav_item in nav_item.children %}
+        {% if nav_item.is_index and not index is defined %}
+          {% set _ = indexes.append(nav_item) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if "navigation.tabs" in features %}
+      {% if level == 1 and nav_item.active %}
+        {% set class = class ~ " md-nav__item--section" %}
+        {% set is_section = true %}
+      {% endif %}
+      {% if "navigation.sections" in features %}
+        {% if level == 2 and nav_item.parent.active %}
+          {% set class = class ~ " md-nav__item--section" %}
+          {% set is_section = true %}
+        {% endif %}
+      {% endif %}
+    {% elif "navigation.sections" in features %}
+      {% if level == 1 %}
+        {% set class = class ~ " md-nav__item--section" %}
+        {% set is_section = true %}
+      {% endif %}
+    {% endif %}
+    {% if "navigation.prune" in features %}
+      {% if not is_section and not nav_item.active %}
+        {% set class = class ~ " md-nav__item--pruned" %}
+        {% set is_pruned = true %}
+      {% endif %}
+    {% endif %}
+    <li class="{{ class }} md-nav__item--nested">
+      {% if not is_pruned %}
+        {% set checked = "checked" if nav_item.active %}
+        {% if "navigation.expand" in features and not checked %}
+          {% set indeterminate = "md-toggle--indeterminate" %}
+        {% endif %}
+        <input class="md-nav__toggle md-toggle {{ indeterminate }}" type="checkbox" id="{{ path }}" {{ checked }}>
+        {#- APTRUST: heading level for section headers, derived from nav depth.
+            nav.html renders the site title as <h2>, so level 1 -> h3, level 2 ->
+            h4, and so on, capped at h6. No level is ever skipped. -#}
+        {% set heading = "h" ~ [level + 2, 6] | min %}
+        {% if not indexes %}
+          {% if is_section %}
+            {#- APTRUST: a section item is TWO different things depending on the
+                viewport, so it renders as two elements and CSS shows exactly one.
+                Every one of Material's .md-nav__item--section rules is scoped to
+                @media (min-width: 76.25em), which means:
+
+                  desktop (>= 76.25em) — an inert visual heading. The theme gives
+                    it pointer-events: none and leaves its tabindex empty. This is
+                    the element the audit was looking at: it must be a real
+                    heading and must never be focusable or bound to a control.
+
+                  drawer (< 76.25em) — a genuine slide-in panel toggle, with a
+                    chevron, that reveals the section's child pages. Rendering
+                    only the heading here would strand every child page.
+
+                display: none removes whichever one does not apply from the
+                accessibility tree, so AT encounters exactly one element with
+                the correct role at any given width. See the matching breakpoint
+                rules in docs/stylesheets/extra.css. -#}
+            <{{ heading }} class="md-nav__link md-nav__link--section" id="{{ path }}_label">
+              {{ render_content(nav_item) }}
+            </{{ heading }}>
+            <button type="button" class="md-nav__link md-nav__link--toggle md-nav__link--section-toggle" aria-expanded="{{ nav_item.active | tojson }}" aria-controls="{{ path }}_content">
+              {{ render_content(nav_item) }}
+              <span class="md-nav__icon md-icon"></span>
+            </button>
+          {% else %}
+            {#- APTRUST: real disclosure control, replacing <label for=…>. Nested
+                non-section items are toggles at every width, so there is only
+                one element to render. -#}
+            <button type="button" class="md-nav__link md-nav__link--toggle" id="{{ path }}_label" aria-expanded="{{ nav_item.active | tojson }}" aria-controls="{{ path }}_content">
+              {{ render_content(nav_item) }}
+              <span class="md-nav__icon md-icon"></span>
+            </button>
+          {% endif %}
+        {% else %}
+          {% set index = indexes | first %}
+          {% set class = "md-nav__link--active" if index == page %}
+          <div class="md-nav__link md-nav__container">
+            <a href="{{ index.url | url }}" class="md-nav__link {{ class }}">
+              {{ render_content(index, nav_item) }}
+            </a>
+            {% if nav_item.children | length > 1 %}
+              {#- APTRUST: the index variant needs the same control. Here the
+                  section's name is already carried by the sibling <a>, so the
+                  button is icon-only and takes an explicit aria-label. On desktop
+                  Material hides the chevron for sections, so the section variant
+                  is gated by the same breakpoint class as above. -#}
+              <button type="button" class="md-nav__link md-nav__link--toggle {{ class }}{% if is_section %} md-nav__link--section-toggle{% endif %}" id="{{ path }}_label" aria-expanded="{{ nav_item.active | tojson }}" aria-controls="{{ path }}_content" aria-label="{{ nav_item.title }}">
+                <span class="md-nav__icon md-icon"></span>
+              </button>
+            {% endif %}
+          </div>
+        {% endif %}
+        {#- APTRUST: id added for aria-controls; aria-expanded removed — it is not
+            an allowed attribute on role="navigation" and now lives on the button. -#}
+        <nav class="md-nav" id="{{ path }}_content" data-md-level="{{ level }}" aria-labelledby="{{ path }}_label">
+          {#- APTRUST: this title is the mobile drawer's back control — it really
+              is interactive, and it is display:none on desktop, so it never
+              competes with the section heading above. A <button> is the correct
+              element for it. -#}
+          <button type="button" class="md-nav__title md-nav__title--back" data-md-nav-back="{{ path }}">
+            <span class="md-nav__icon md-icon"></span>
+            {{ nav_item.title }}
+          </button>
+          <ul class="md-nav__list" data-md-scrollfix>
+            {% for nav_item in nav_item.children %}
+              {% if not indexes or nav_item != indexes | first %}
+                {{ render(nav_item, path ~ "_" ~ loop.index, level + 1) }}
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </nav>
+      {% else %}
+        {{ render_pruned(nav_item) }}
+      {% endif %}
+    </li>
+  {% elif nav_item == page %}
+    <li class="{{ class }}">
+      {% set toc = page.toc %}
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      {% set first = toc | first %}
+      {% if first and first.level == 1 %}
+        {% set toc = first.children %}
+      {% endif %}
+      {% if toc %}
+        {#- APTRUST: the mobile-only control that opens this page's table of
+            contents inside the drawer. It is a genuine toggle, so it becomes a
+            button rather than a <label for>. -#}
+        <button type="button" class="md-nav__link md-nav__link--active md-nav__link--toggle md-nav__link--toc" id="__toc_label" aria-expanded="false" aria-controls="__toc_content">
+          {{ render_content(nav_item) }}
+          <span class="md-nav__icon md-icon"></span>
+        </button>
+      {% endif %}
+      <a href="{{ nav_item.url | url }}" class="md-nav__link md-nav__link--active">
+        {{ render_content(nav_item) }}
+      </a>
+      {% if toc %}
+        {#- APTRUST: mark this include as the in-drawer copy so toc.html renders
+            the back button (and the aria-controls target id) rather than the
+            desktop sidebar's heading. -#}
+        {% with toc_in_drawer = true %}
+          {% include "partials/toc.html" %}
+        {% endwith %}
+      {% endif %}
+    </li>
+  {% else %}
+    <li class="{{ class }}">
+      <a href="{{ nav_item.url | url }}" class="md-nav__link">
+        {{ render_content(nav_item) }}
+      </a>
+    </li>
+  {% endif %}
+{% endmacro %}

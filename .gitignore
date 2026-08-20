@@ -1,1 +1,5 @@
 .python-version
+
+# Build output. `tools/a11y-check` runs `mkdocs build` on every check, so this
+# is regenerated locally all the time; the deployed copy is built in CI.
+site/
