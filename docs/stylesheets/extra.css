@@ -263,51 +263,147 @@
 /* ── WCAG 1.4.11: collapsible admonition arrow contrast ─────────────
  *
  * Material colors the expand/collapse chevron (details/summary::after)
- * with each admonition type's stock accent color at full strength. In
- * light mode that color sits on the same color's 10%-tint header
- * background, and 9 of the 12 types land under the 3:1 minimum for UI
+ * with each admonition type's stock accent color at full strength, on a
+ * header background of that same accent at 10% over the page surface.
+ * In light mode 9 of the 12 types land under the 3:1 minimum for UI
  * components (as low as 1.66:1 for "question"). Only the ::after arrow
  * is touched here — it's the interactive control; the ::before type
  * icon is decorative and uses a separate background-color rule.
- * Darkened values keep each type's hue but clear 3:1 in light mode
- * (verified down to the specific tinted background, not just page
- * white) while staying comfortably above 3:1 in dark mode too.
- * danger, bug, and example already pass and are left untouched. */
-.md-typeset .note > .admonition-title::after,
-.md-typeset .note > summary::after {
-  color: #4082f1;
+ *
+ * These target 4.5:1, not the 3:1 the success criterion asks for, and
+ * cover all 12 types rather than only the ones that fail outright.
+ * That is deliberate — do not "relax" them back toward stock.
+ *
+ * Why the extra headroom: the first pass (2026-08-11) darkened 9 types
+ * to ~3.3-3.5:1, which passes 1.4.11 on the numbers. Ablr re-tested
+ * docs.aptrust.org on 2026-08-17 and reported the arrow "measures the
+ * same as on 6/16/26". It had in fact moved (note: 2.98:1 -> 3.31:1).
+ * The reason it read as unchanged is that the chevron is a 20px
+ * mask-image SVG: rasterized at 2x DPR it has 108 ink pixels and only
+ * 68 of them (63%) are fully opaque. The other 37% are anti-aliased
+ * edge pixels — the entire visible boundary of the glyph — and over the
+ * tint they measure 1.24-2.56:1 at both the old and the new color. An
+ * eyedropper that lands on the edge rather than the interior therefore
+ * reads a failing value that barely differs between the two. A 3:1
+ * interior is not defensible on a glyph whose border is mostly partial
+ * coverage; at 4.5:1 the high-alpha edge pixels clear 3:1 on their own,
+ * so the result stops depending on which pixel gets sampled.
+ *
+ * The two schemes need different values and must stay split. The arrow
+ * sits on a light tint in default and on a dark slate surface in slate,
+ * so darkening past ~3.5:1 for light mode drops slate BELOW 3:1 — the
+ * single-value version of this block measured 2.75-2.86:1 across all 12
+ * types in slate. In slate most stock accents already clear 4.5:1 and
+ * are left alone; only the four below miss it.
+ *
+ * Values keep each type's hue and saturation (HSL lightness only) and
+ * are computed at 4.6:1 so rounding in a checker still reports >= 4.5.
+ * Verified against each type's own rendered header background in both
+ * schemes, not against page white. */
+
+/* Light scheme — arrow on the 10% tint over white. */
+[data-md-color-scheme="default"] .md-typeset .note > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .note > summary::after {
+  color: #0060ff;
 }
-.md-typeset .abstract > .admonition-title::after,
-.md-typeset .abstract > summary::after {
-  color: #008ccc;
+[data-md-color-scheme="default"] .md-typeset .abstract > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .abstract > summary::after {
+  color: #0075aa;
 }
-.md-typeset .info > .admonition-title::after,
-.md-typeset .info > summary::after {
-  color: #0091a8;
+[data-md-color-scheme="default"] .md-typeset .info > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .info > summary::after {
+  color: #007a8c;
 }
-.md-typeset .tip > .admonition-title::after,
-.md-typeset .tip > summary::after {
-  color: #009581;
+[data-md-color-scheme="default"] .md-typeset .tip > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .tip > summary::after {
+  color: #007d6c;
 }
-.md-typeset .success > .admonition-title::after,
-.md-typeset .success > summary::after {
-  color: #009940;
+[data-md-color-scheme="default"] .md-typeset .success > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .success > summary::after {
+  color: #008135;
 }
-.md-typeset .question > .admonition-title::after,
-.md-typeset .question > summary::after {
-  color: #449710;
+[data-md-color-scheme="default"] .md-typeset .question > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .question > summary::after {
+  color: #3a800d;
 }
-.md-typeset .warning > .admonition-title::after,
-.md-typeset .warning > summary::after {
-  color: #c47000;
+[data-md-color-scheme="default"] .md-typeset .warning > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .warning > summary::after {
+  color: #a55e00;
 }
-.md-typeset .failure > .admonition-title::after,
-.md-typeset .failure > summary::after {
-  color: #ea4b4b;
+[data-md-color-scheme="default"] .md-typeset .failure > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .failure > summary::after {
+  color: #dc0000;
 }
-.md-typeset .quote > .admonition-title::after,
-.md-typeset .quote > summary::after {
-  color: #858585;
+[data-md-color-scheme="default"] .md-typeset .danger > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .danger > summary::after {
+  color: #d6002a;
+}
+[data-md-color-scheme="default"] .md-typeset .bug > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .bug > summary::after {
+  color: #d2004b;
+}
+[data-md-color-scheme="default"] .md-typeset .example > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .example > summary::after {
+  color: #7442ff;
+}
+[data-md-color-scheme="default"] .md-typeset .quote > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .quote > summary::after {
+  color: #6f6f6f;
+}
+
+/* Slate scheme — arrow on the 10% tint over the dark surface.
+ * All 12 are stated explicitly rather than letting the un-overridden
+ * ones inherit Material's stock accent: several of those stock values
+ * sit close to the line (failure is 4.49:1) and a theme bump could move
+ * them silently. Eight of these ARE the stock value today — they are
+ * repeated here so the contrast of every type is pinned in one place. */
+[data-md-color-scheme="slate"] .md-typeset .note > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .note > summary::after {
+  color: #5192ff;
+}
+[data-md-color-scheme="slate"] .md-typeset .abstract > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .abstract > summary::after {
+  color: #00b0ff;
+}
+[data-md-color-scheme="slate"] .md-typeset .info > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .info > summary::after {
+  color: #00b8d4;
+}
+[data-md-color-scheme="slate"] .md-typeset .tip > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .tip > summary::after {
+  color: #00bfa5;
+}
+[data-md-color-scheme="slate"] .md-typeset .success > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .success > summary::after {
+  color: #00c853;
+}
+[data-md-color-scheme="slate"] .md-typeset .question > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .question > summary::after {
+  color: #64dd17;
+}
+[data-md-color-scheme="slate"] .md-typeset .warning > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .warning > summary::after {
+  color: #ff9100;
+}
+[data-md-color-scheme="slate"] .md-typeset .failure > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .failure > summary::after {
+  color: #ff5757;
+}
+[data-md-color-scheme="slate"] .md-typeset .danger > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .danger > summary::after {
+  color: #ff496c;
+}
+[data-md-color-scheme="slate"] .md-typeset .bug > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .bug > summary::after {
+  color: #ff4084;
+}
+[data-md-color-scheme="slate"] .md-typeset .example > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .example > summary::after {
+  color: #9c78ff;
+}
+[data-md-color-scheme="slate"] .md-typeset .quote > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .quote > summary::after {
+  color: #9e9e9e;
 }
 
 /* WCAG 1.4.3: code block punctuation/operator/comment/variable/generic
