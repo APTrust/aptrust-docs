@@ -414,6 +414,85 @@ h4.md-nav__title, h5.md-nav__title, h6.md-nav__title {
 }
 
 /* ---------------------------------------------------------------------------
+ * Drawer reflow (Ablr 1.4.10 "Reflow", Serious — "Info or functionality is
+ * unavailable at 320px width equivalent").
+ *
+ * Material's mobile drawer is a STACK of absolutely-positioned panels, and at
+ * the drawer breakpoint it hides the ones you cannot see with nothing but a
+ * transform:
+ *
+ *     .md-nav__toggle ~ .md-nav { display:flex; opacity:0;
+ *                                 transform:translateX(100%) }
+ *
+ * No display:none and no visibility:hidden — so every link inside every
+ * COLLAPSED panel stays focusable and stays in the accessibility tree, one full
+ * drawer-width off-canvas. (Above 76.25em Material uses visibility:collapse for
+ * the same state, which is why this is a mobile-only defect — i.e. exactly the
+ * reflow case the auditor tested.) overrides/main.html strips tabindex="-1"
+ * from every sidebar control when the drawer opens, so nothing else holds them
+ * back either: measured on /user-guide/ at 320px, 224 of 225 sidebar controls
+ * were tabbable and only ~20 were on screen. Tabbing off "Preservation Actions"
+ * landed in its collapsed panel at x=242; the browser scrolled to reveal the
+ * focused element and shoved the visible panel away — the auditor's "the
+ * submenu items under the expanding menu items disappear".
+ *
+ * An OPEN panel is position:absolute; top:0; height:100%; z-index:1 with an
+ * opaque background, so it also completely covers its parent panel. Those
+ * covered controls have the same problem for the same reason.
+ *
+ * Fix: make focusability track what is actually on screen. visibility is the
+ * right property because it is the only one a descendant can turn back ON,
+ * which is what lets the "hide the covered panel" rule and the "show the open
+ * panel" rule compose without fighting.
+ *
+ * Scoped to .md-sidebar--primary, which also picks up the in-drawer table of
+ * contents (nav-item.html renders it inside the primary nav, gated on __toc) —
+ * it is off-canvas in exactly the same way.
+ *
+ * Like the compatibility shims below, these rules reproduce Material's own
+ * transition timings: re-diff them when bumping the theme.
+ * ------------------------------------------------------------------------- */
+
+@media screen and (max-width: 76.234375em) {
+  /* Collapsed panel: off-canvas, so take it out of the tab order and the
+     accessibility tree. The 250ms visibility delay matches Material's own
+     desktop rule so the slide-out still animates before it disappears. */
+  .md-sidebar--primary .md-nav__toggle ~ .md-nav {
+    visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.8, 0, 0.6, 1),
+                opacity 125ms 50ms,
+                visibility 0ms 250ms;
+  }
+
+  /* A panel whose direct child panel is open is completely covered by it. Hide
+     the covered panel's own chrome — its title/back button, its Close button
+     and its list. The open child sits inside that list and re-declares
+     visibility below, so it stays on screen. */
+  .md-sidebar--primary
+    .md-nav:has(> .md-nav__list > .md-nav__item > .md-nav__toggle:checked)
+    > .md-nav__title,
+  .md-sidebar--primary
+    .md-nav:has(> .md-nav__list > .md-nav__item > .md-nav__toggle:checked)
+    > .md-nav__close-button,
+  .md-sidebar--primary
+    .md-nav:has(> .md-nav__list > .md-nav__item > .md-nav__toggle:checked)
+    > .md-nav__list {
+    visibility: hidden;
+  }
+
+  /* The panel the user is actually looking at. Declared last and on the element
+     itself, so it wins over the inherited `hidden` from either rule above.
+     (If a browser does not support :has(), the middle rule is dropped whole and
+     this degrades to a partial fix — never to a broken drawer.) */
+  .md-sidebar--primary .md-nav__toggle:checked ~ .md-nav {
+    visibility: visible;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 125ms 125ms,
+                visibility 0ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * Compatibility shims for Material rules keyed on [for=...].
  *
  * Several of Material's own rules select on the literal attribute values

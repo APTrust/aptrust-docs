@@ -14,15 +14,17 @@ so it can gate a release.
 
 ## What it sweeps
 
-7 pages x 3 states = 21 combinations:
+7 pages x 4 states = 28 combinations:
 
 | | |
 |---|---|
 | **Pages** | `/`, `/user-guide/`, `/user-guide/preservation/ingest/`, `/dart-docs/`, `/registry-docs/`, `/api/`, `/policies/` |
-| **States** | desktop 1280x800; mobile 375x812 drawer closed; mobile 375x812 **drawer open** |
+| **States** | desktop 1280x800; mobile 375x812 drawer closed; mobile 375x812 **drawer open**; mobile 320x512 **drawer open** |
 
-The drawer-open state matters: it is the only state in which the sidebar's own
-header, Close button and back buttons are on screen.
+The drawer-open states matter: they are the only ones in which the sidebar's own
+header, Close button and back buttons are on screen. 320px is the width WCAG
+1.4.10 (Reflow) names and the width the auditor tested — 1366x768 zoomed to 200%
+is the same CSS viewport — and it is where the drawer is most cramped.
 
 ## Two layers, because they catch different things
 
@@ -50,6 +52,7 @@ Assertions:
 | `aria-expanded-on-nav` | Not an allowed attribute on `role="navigation"`; Material ships it by default. |
 | `aria-expanded-stale` / `toggle-no-state` | A disclosure button whose `aria-expanded` disagrees with its checkbox announces the wrong state. |
 | `focusable-in-aria-hidden` | AT skips it while the keyboard still lands on it. |
+| `tabbable-offscreen-in-drawer` / `tabbable-covered-in-drawer` | WCAG 1.4.10 (Reflow). With the drawer open, every tabbable sidebar control must be on screen *and* be the topmost element at its own centre. Material parks collapsed drawer panels off-canvas with a transform and lets an open panel cover its parent, hiding neither from the tab order — so the keyboard walked through ~200 controls the user could not see. Each element is `scrollIntoView`'d first, so an item merely below the fold of a scrollable list is not a failure; only one that cannot be scrolled to, or that something is painted over, is. |
 
 ## report/
 

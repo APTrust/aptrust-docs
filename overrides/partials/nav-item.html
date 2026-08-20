@@ -201,6 +201,25 @@
             <span class="md-nav__icon md-icon"></span>
             {{ nav_item.title }}
           </button>
+          {#- APTRUST: every drawer panel gets its own Close button (Ablr 1.4.10
+              "Reflow", Serious).
+
+              The drawer is a stack of absolutely-positioned panels, each opaque
+              and covering the one below it. nav.html's Close button lives at the
+              ROOT of that stack, so on any page whose section panel is open —
+              which is nearly every page — it sits behind that panel: invisible,
+              and (since the reflow rules in extra.css) correctly out of the tab
+              order. Without a copy here the drawer would open with no visible
+              way out except Escape, and the focus trap's initial focus would
+              land on the panel's back button instead.
+
+              It needs no CSS or JS of its own: .md-nav__close-button is already
+              styled drawer-only in extra.css, and the handler in
+              overrides/main.html binds every instance. Only the panel on screen
+              is visible or exposed to AT, so AT still meets exactly one. -#}
+          <button type="button" class="md-nav__close-button" aria-label="Close navigation menu" data-md-component="nav-close">
+            Close
+          </button>
           <ul class="md-nav__list" data-md-scrollfix>
             {% for nav_item in nav_item.children %}
               {% if not indexes or nav_item != indexes | first %}

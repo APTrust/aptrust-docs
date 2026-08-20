@@ -57,6 +57,11 @@ const STATES = [
   { name: 'desktop',      width: 1280, height: 800, drawer: false },
   { name: 'mobile',       width: 375,  height: 812, drawer: false },
   { name: 'mobile-drawer', width: 375, height: 812, drawer: true  },
+  /* 320px is the width WCAG 1.4.10 (Reflow) names, and the width the auditor
+     tested — 1366x768 zoomed to 200% is the same CSS viewport. The drawer is
+     at its most cramped here, so it is the state where an off-screen or
+     covered tab stop shows up. */
+  { name: 'mobile-320-drawer', width: 320, height: 512, drawer: true },
 ];
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'];
@@ -206,6 +211,53 @@ const STRUCTURAL_CHECKS = `
         while the keyboard still lands on it. */
   for (const el of document.querySelectorAll('[aria-hidden="true"] a[href], [aria-hidden="true"] button')) {
     if (el.getAttribute('tabindex') !== '-1') add('focusable-in-aria-hidden', el.tagName + ' "' + label(el) + '"');
+  }
+
+  /* 8. WCAG 1.4.10 (Reflow), the finding this check was added for. The mobile
+        drawer is a stack of absolutely-positioned panels: Material moves the
+        collapsed ones off-canvas with a transform only, and an open panel
+        covers its parent. Neither is hidden from the tab order by the theme, so
+        without the drawer reflow rules in extra.css the keyboard walks through
+        ~200 controls the user cannot see, and the browser scrolls the visible
+        panel away trying to reveal them.
+
+        Assert the tab order matches the screen: every tabbable sidebar control
+        must be inside the viewport AND be the topmost thing at its own centre.
+        Only meaningful with the drawer open at the drawer breakpoint. */
+  const drawerCb = document.getElementById('__drawer');
+  const sidebar = document.querySelector('.md-sidebar--primary');
+  if (drawerCb && drawerCb.checked && sidebar &&
+      matchMedia('(max-width: 76.234375em)').matches) {
+    for (const el of sidebar.querySelectorAll('a[href], button')) {
+      if (el.getAttribute('tabindex') === '-1' || hidden(el)) continue;
+      if (!visible(el)) continue;
+      /* Emulate what focusing actually does: browsers scroll a focused element
+         into view. An item merely below the fold of the drawer's scrollable
+         list is fine — the scroll reveals it. An item parked off-canvas by a
+         transform cannot be scrolled to, so it stays outside. */
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) {
+        add('tabbable-offscreen-in-drawer',
+            '"' + label(el) + '" still at ' + Math.round(r.left) + ',' + Math.round(r.top) +
+            ' after scrollIntoView');
+        continue;
+      }
+      const top = document.elementFromPoint(cx, cy);
+      if (top !== el && !el.contains(top)) {
+        add('tabbable-covered-in-drawer',
+            '"' + label(el) + '" covered by ' +
+            (top ? top.tagName + '.' + String(top.className).slice(0, 40) : 'nothing'));
+      }
+    }
+    /* Leave the drawer as we found it so the evidence screenshot below shows
+       the top of the nav rather than wherever the sweep left it. */
+    sidebar.querySelectorAll('.md-nav__list, .md-sidebar__scrollwrap')
+      .forEach((e) => { e.scrollTop = 0; });
+    window.scrollTo(0, 0);
   }
 
   return fail;

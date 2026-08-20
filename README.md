@@ -115,8 +115,9 @@ Before shipping a change that touches the header, sidebar, or `overrides/`, run:
 cd tools/a11y-check && npm run a11y
 ```
 
-It sweeps 7 pages at 3 viewport states with axe-core plus assertions read from
-Chrome's real accessibility tree, and writes an evidence pack to `report/`.
+It sweeps 7 pages at 4 viewport states (including the mobile drawer open at
+320px, the width WCAG 1.4.10 Reflow names) with axe-core plus assertions read
+from Chrome's real accessibility tree, and writes an evidence pack to `report/`.
 See [tools/a11y-check/README.md](tools/a11y-check/README.md), and the
 **Accessibility** section of `CLAUDE.md` for the design rationale and the manual
 VoiceOver checklist that automation cannot replace.

@@ -100,6 +100,57 @@ handler.** The regression that failed the re-audit was a JS sweep over
 keyboard-focusable controls that were `pointer-events: none` and whose checkbox
 did nothing — precisely "announces as Clickable, but doesn't redirect the user".
 
+### The drawer is a stack of panels — only the top one may be interactive
+
+This is the fix for Ablr's 1.4.10 (Reflow) finding, which was reported *twice* as
+not fixed. Material's mobile drawer stacks absolutely-positioned panels, and at
+the drawer breakpoint it moves the ones you cannot see with **a transform only**:
+
+```css
+.md-nav__toggle ~ .md-nav { display:flex; opacity:0; transform:translateX(100%) }
+```
+
+No `display:none`, no `visibility:hidden` — so every link in every collapsed
+panel stays focusable and stays in the accessibility tree, one full drawer-width
+off-canvas. (Above 76.25em Material uses `visibility:collapse` for the same
+state, which is why this is a *mobile-only* defect, i.e. exactly the reflow
+case.) An **open** panel is opaque and `z-index: 1`, so it also completely covers
+its parent panel. Meanwhile `setTabindex(true)` in `overrides/main.html` strips
+`tabindex="-1"` from every sidebar control when the drawer opens, so nothing else
+holds them back either.
+
+Measured on `/user-guide/` at 320px before the fix: **224 of 225 sidebar controls
+were tabbable and only ~20 were on screen.** Tabbing off "Preservation Actions"
+landed in its collapsed panel at `x=242`; the browser scrolled to reveal the
+focused element and shoved the visible panel out of view — the auditor's "the
+submenu items under the expanding menu items disappear". After the fix: **10.**
+
+The "Drawer reflow" block in `docs/stylesheets/extra.css` fixes this with three
+rules, all scoped to `max-width: 76.234375em`:
+
+1. collapsed panel → `visibility: hidden`
+2. a panel with an open direct child → its own title, Close button and list →
+   `visibility: hidden`
+3. the open panel → `visibility: visible`
+
+`visibility` is the right property precisely because it is **the only one a
+descendant can turn back on**, which is what lets rules 2 and 3 compose. Do not
+substitute `display:none` — the panels would stop animating and rule 3 could not
+undo rule 2.
+
+Two consequences that must not be "cleaned up":
+
+- **Every panel carries its own Close button** (`nav-item.html`, next to the back
+  button). `nav.html`'s copy lives at the root of the stack, so on any page whose
+  section panel is open — nearly every page — it is covered, and after rule 2 it
+  is correctly out of the tab order too. Only the panel on screen has a visible
+  Close, so AT still meets exactly one.
+- **The focus trap must test `visibility`, not just `offsetParent`.**
+  `offsetParent` is null only for `display:none`, `position:fixed` and detached
+  nodes, so it does not notice these rules at all. That is what `focusables()` in
+  `overrides/main.html` is for; without it the first/last calculation points at a
+  hidden panel and Tab walks straight out of the drawer.
+
 ### Overridden partials are forks — re-diff them on upgrade
 
 `overrides/partials/{nav,nav-item,toc,header}.html` are copies of
@@ -125,10 +176,17 @@ Close button are the real exits).
 
 ### Verifying — do both before telling the auditor to retest
 
-**1. Automated.** `cd tools/a11y-check && npm run a11y` — 7 pages x 3 viewport
+**1. Automated.** `cd tools/a11y-check && npm run a11y` — 7 pages x 4 viewport
 states, axe-core plus assertions read from Chrome's real accessibility tree. See
 `tools/a11y-check/README.md`. `report/*.ax.json` is the evidence pack to send the
 auditor: it shows the role and name the screen reader actually receives.
+
+The `mobile-320-drawer` state carries the reflow assertion: with the drawer open,
+every tabbable sidebar control must be on screen *and* be the topmost element at
+its own centre (`tabbable-offscreen-in-drawer` / `tabbable-covered-in-drawer`).
+Strip the "Drawer reflow" block from `extra.css` and it reports hundreds of
+failures — that is the check being non-vacuous, and worth re-confirming if you
+ever rework those rules.
 
 **2. Manual, with VoiceOver.** Automated checks cannot confirm how a screen
 reader speaks. At 1280px and at 375px:
@@ -138,8 +196,11 @@ reader speaks. At 1280px and at 375px:
 - Tab through the sidebar on desktop: section headers are **skipped entirely**.
 - In the mobile drawer: section items announce **"<name>, collapsed/expanded,
   button"**, and Enter/Space visibly slides the panel in.
-- Open the drawer: focus lands on **Close**, Tab stays trapped inside, Escape
-  closes and returns focus to the hamburger.
+- Open the drawer: focus lands on the first control of the panel that is on
+  screen — **Close** at the root, the **back button** inside a section panel.
+  Tab stays trapped inside, Escape closes and returns focus to the hamburger.
+- In the drawer at 320px, Tab all the way round: every stop must be on a control
+  you can see, and the visible panel must never scroll itself out of view.
 - The sidebar logo is silent (decorative); the header logo still announces as the
   home link.
 

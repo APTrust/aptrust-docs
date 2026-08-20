@@ -170,13 +170,29 @@
            on every navigation because different pages expand different sections,
            changing which lists actually overflow. Lists that no longer overflow
            have the attribute removed so they don't create spurious tab stops. */
-        document.querySelectorAll('.md-nav__list').forEach(function (list) {
-            if (list.scrollHeight > list.clientHeight) {
+        function syncListTabstop(list) {
+            /* A list inside a collapsed or covered drawer panel is
+               visibility:hidden (see the drawer reflow rules in extra.css). It
+               still has layout, so it still reports an overflow — but it must
+               not advertise a tab stop the user cannot see. */
+            var shown = window.getComputedStyle(list).visibility === 'visible';
+            if (shown && list.scrollHeight > list.clientHeight) {
                 if (!list.hasAttribute('tabindex')) list.setAttribute('tabindex', '0');
-            } else {
-                if (list.getAttribute('tabindex') === '0') list.removeAttribute('tabindex');
+            } else if (list.getAttribute('tabindex') === '0') {
+                list.removeAttribute('tabindex');
             }
-        });
+        }
+        document.querySelectorAll('.md-nav__list').forEach(syncListTabstop);
+
+        /* Expanding or collapsing a drawer panel changes which lists are on
+           screen, so the sweep above has to run again after the slide
+           transition — otherwise a panel opened after page load never gets its
+           scroll tab stop. */
+        function resyncListTabstops() {
+            setTimeout(function () {
+                document.querySelectorAll('.md-nav__list').forEach(syncListTabstop);
+            }, 300);
+        }
 
         /* WCAG 4.1.1: expose the active nav item to assistive technologies.
            Material adds md-nav__link--active but no aria-current; screen readers
@@ -212,6 +228,7 @@
                 cb.checked = !cb.checked;
                 cb.dispatchEvent(new Event('change'));
                 btn.setAttribute('aria-expanded', String(cb.checked));
+                resyncListTabstops();
             });
             /* Material's own code (and the back buttons below) can move the
                checkbox without going through this button, so mirror it back. */
@@ -230,6 +247,7 @@
             btn.addEventListener('click', function () {
                 var cb = document.getElementById(btn.getAttribute('data-md-nav-back'));
                 if (cb) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+                resyncListTabstops();
             });
         });
 
@@ -303,6 +321,14 @@
                     sidebar.setAttribute('aria-hidden', 'true');
                 }
 
+                /* Same reasoning as the sweep above, applied to the state
+                   change rather than to navigation: while the drawer is shut
+                   the whole sidebar is off-screen, so no list inside it may
+                   hold a tab stop. */
+                sidebar.querySelectorAll('.md-nav__list').forEach(function (list) {
+                    open ? syncListTabstop(list) : list.removeAttribute('tabindex');
+                });
+
                 sidebar.querySelectorAll('a, button').forEach(function (el) {
                     /* The sidebar logo is decorative (see partials/nav.html): it
                        duplicates the header's home link and is aria-hidden, so it
@@ -313,6 +339,24 @@
                         return;
                     }
                     open ? el.removeAttribute('tabindex') : el.setAttribute('tabindex', '-1');
+                });
+            }
+
+            /* The focusable set, as the user actually sees it.
+               offsetParent alone is NOT enough: it is null only for
+               display:none, position:fixed and detached nodes, so it does not
+               notice the visibility:hidden that the drawer reflow rules in
+               extra.css put on collapsed and covered panels. Without the
+               visibility test the first/last calculation below would point at
+               a hidden panel, initial focus would call .focus() on an
+               unfocusable element, and Tab would walk straight out of the
+               drawer. */
+            function focusables(sidebar) {
+                return Array.from(sidebar.querySelectorAll(
+                    'a:not([tabindex="-1"]), button:not([tabindex="-1"])'
+                )).filter(function (el) {
+                    if (el.offsetParent === null) return false;
+                    return window.getComputedStyle(el).visibility === 'visible';
                 });
             }
 
@@ -333,9 +377,7 @@
                     if (e.key !== 'Tab') return;
                     var sidebar = getSidebar();
                     if (!sidebar) return;
-                    var f = Array.from(sidebar.querySelectorAll(
-                        'a:not([tabindex="-1"]), button:not([tabindex="-1"])'
-                    )).filter(function (el) { return el.offsetParent !== null; });
+                    var f = focusables(sidebar);
                     if (!f.length) return;
                     if (e.shiftKey && document.activeElement === f[0]) {
                         e.preventDefault(); f[f.length - 1].focus();
@@ -351,9 +393,7 @@
                 setTimeout(function () {
                     var sidebar = getSidebar();
                     if (!sidebar) return;
-                    var focusable = Array.from(sidebar.querySelectorAll(
-                        'a:not([tabindex="-1"]), button:not([tabindex="-1"])'
-                    )).filter(function (el) { return el.offsetParent !== null; });
+                    var focusable = focusables(sidebar);
                     if (focusable.length) focusable[0].focus();
                 }, 280);
             }
