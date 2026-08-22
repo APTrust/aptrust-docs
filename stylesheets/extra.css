@@ -1,0 +1,795 @@
+/* ── Search result site labels ─────────────────────────────────────────────────
+ *
+ * Material for MkDocs renders each result item as:
+ *
+ *   <li class="md-search-result__item">
+ *     <!-- Page-title row (icon + title) — we skip this one -->
+ *     <a href="...">
+ *       <article class="md-search-result__article md-search-result__article--document">
+ *         <div class="md-search-result__icon">…</div>
+ *         <h1>Page Title</h1>
+ *       </article>
+ *     </a>
+ *     <!-- Section match(es) — badge goes here -->
+ *     <a href="...#section">
+ *       <article class="md-search-result__article">
+ *         <h1>Section Heading</h1>
+ *         <p>Excerpt…</p>
+ *       </article>
+ *     </a>
+ *   </li>
+ *
+ * :not(.md-search-result__article--document) targets only the section articles,
+ * not the page-title row. Without this, a second badge appears in the gap before
+ * the page title, which looks like a floating label between result items.
+ *
+ * If URL namespaces change, update the four href patterns below.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* Shared badge appearance — section articles only */
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before,
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  display: inline-block;
+  margin-top: 0.8em !important;
+  padding: 0.1em 0.45em;
+  border-radius: 0.15em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  color: #fff;
+}
+
+/* Per-section label text and colour */
+.md-search-result__item a[href*="/user-guide/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "User Guide";
+  background-color: #1565c0;
+}
+
+.md-search-result__item a[href*="/dart-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "DART";
+  background-color: #2e7d32;
+}
+
+.md-search-result__item a[href*="/preservation-services-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "Preservation Services";
+  background-color: #b71c1c;
+}
+
+.md-search-result__item a[href*="/registry-docs/"] .md-search-result__article:not(.md-search-result__article--document)::before {
+  content: "Registry";
+  background-color: #6a1b9a;
+}
+
+/* WCAG 1.4.1: links must be distinguishable from surrounding text by more than
+   color alone. Material removes underlines by default; indigo on near-black body
+   text only reaches 2.35:1 contrast. Underline satisfies the non-color differentiator
+   requirement without any color change. */
+.md-typeset a {
+  text-decoration: underline;
+}
+
+/* WCAG 1.4.3: footer copyright text. #7f7f7f on #171717 = 4.47:1 (fails AA).
+   #828282 on #171717 = 4.67:1 ✓ */
+.md-copyright {
+  color: #828282 !important;
+}
+
+/* WCAG 2.1.1: scrollable nav list containers get tabindex="0" via JS so
+   Safari keyboard users can scroll them. Show a focus ring so the tab stop
+   is visible (WCAG 2.4.7). Inset offset keeps it inside the container. */
+.md-nav__list[tabindex="0"]:focus {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}
+
+/* WCAG 1.4.3 fix: inactive tab text must meet 4.5:1 contrast.
+   Material applies opacity: 0.7 to inactive tabs — white at 70% on #4051b5
+   gives #c6cbe9 (4.28:1, fails AA). Setting opacity: 1 keeps full white (6.86:1). */
+.md-tabs__link {
+  color: rgba(255, 255, 255, 1) !important;
+  opacity: 1 !important;
+}
+
+/* ── WCAG 2.4.7 / 2.4.11: Visible keyboard focus indicators ─────── */
+
+/* Default focus style for all interactive elements in body content.
+   Yellow #FFD600 on white gives 13:1 contrast — well above the 3:1
+   minimum required for UI component focus indicators (WCAG 1.4.11). */
+:focus-visible {
+  outline: 2px solid #FFD600 !important;
+  outline-offset: 2px !important;
+}
+
+/* Override for elements on the dark blue header (#4051b5 background).
+   White outline gives 6.86:1 contrast against the header background. */
+.md-header :focus-visible,
+.md-tabs__link:focus-visible {
+  outline: 2px solid #ffffff !important;
+  outline-offset: 3px !important;
+}
+
+/* Sidebar nav links appear on a white background — use the yellow
+   focus ring here too. */
+.md-nav__link:focus-visible {
+  outline: 2px solid #FFD600 !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure focused items are not hidden behind the sticky header.
+   80px accounts for the header + tab bar height. */
+:focus-visible {
+  scroll-margin-top: 80px;
+}
+
+/* ── New-tab link indicators (WCAG 3.2.2) ───────────────────────────
+ *
+ * .sr-only — standard visually-hidden pattern. Text is announced by
+ *   screen readers but takes up no visible space.
+ *
+ * a[target="_blank"]::after — small ↗ icon appended after the link
+ *   text so sighted users also see that the link opens a new tab.
+ *   aria-hidden is not settable via CSS, but the JS-injected .sr-only
+ *   span already covers the screen-reader announcement, so the icon
+ *   is intentionally decorative and redundant for AT users.
+ * ──────────────────────────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.md-typeset a[target="_blank"]:not(.md-button)::after {
+  content: " \2197";  /* ↗ NORTH EAST ARROW — Unicode escape avoids charset parse issues */
+  font-size: 0.75em;
+  vertical-align: super;
+  opacity: 0.7;
+}
+
+/* VoiceOver / mobile drawer: the sidebar has a white background at all
+   viewport widths. Material sets .md-nav__link colors to
+   --md-primary-fg-color (white for indigo), making every link in the open
+   drawer invisible against that white background. Fix applies to all levels —
+   top-level section links AND nested sub-menu links. The drawer title
+   (.md-nav__title on .md-nav--primary) intentionally keeps its indigo
+   background + white text; only .md-nav__link elements are overridden. */
+.md-sidebar--primary .md-nav__link {
+  color: var(--md-default-fg-color) !important;
+}
+
+/* Section back-buttons inside nested panels also need dark text/white bg. */
+.md-nav--primary .md-nav > .md-nav__title {
+  background-color: var(--md-default-bg-color) !important;
+  color: var(--md-default-fg-color) !important;
+}
+
+/* All sidebar links sit on a white background — yellow focus ring throughout. */
+.md-sidebar--primary .md-nav__link:focus {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}
+
+/* WCAG 2.1.1: visible, keyboard-operable close control for the mobile
+   nav drawer (see overrides/main.html close-button injection). Hidden on
+   desktop where the sidebar is a permanent, non-modal panel. */
+.md-nav__close-button {
+  display: none;
+}
+@media screen and (max-width: 76.234375em) {
+  .md-nav__close-button {
+    display: block;
+    width: calc(100% - 1.2rem);
+    margin: 0.4rem 0.6rem;
+    padding: 0.4rem 0.8rem;
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+    border: none;
+    border-radius: 0.1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+  }
+  .md-nav__close-button:focus-visible {
+    outline: 2px solid #FFD600;
+    outline-offset: 2px;
+  }
+}
+
+/* ── Swagger UI iframe: mobile scroll fix ───────────────────────────
+ *
+ * The mkdocs-swagger-ui-tag plugin renders a full-height iframe
+ * (~4 000 px) with overflow:hidden as inline styles. On mobile,
+ * touch events are captured by the iframe's own document so the page
+ * appears frozen. Capping the iframe to viewport height and allowing
+ * internal scroll restores usability. !important overrides the inline
+ * overflow:hidden.
+ *
+ * Desktop is intentionally excluded: overflow on a replaced element
+ * like <iframe> does not scroll the iframe's internal document — it
+ * only clips the element, cutting off content with no way to reach it.
+ * On desktop the page scrolls naturally at its full 4 000 px height.
+ *
+ * 59.9375em = 959px — Material's breakpoint below which the tab bar
+ * is hidden and only the sticky header (~3rem) remains.
+ * ──────────────────────────────────────────────────────────────────── */
+@media screen and (max-width: 59.9375em) {
+  iframe.swagger-ui-iframe {
+    max-height: calc(100svh - 3.2rem);
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Sidebar scrollbar ghost line fix ───────────────────────────────
+ *
+ * The API page's 4 000 px iframe makes the page tall enough that the
+ * left sidebar scroll wrapper gains a scrollable overflow. Material's
+ * instant navigation preserves this state across navigations, leaving
+ * a gray scrollbar track between the sidebar and content on subsequent
+ * pages until a hard refresh. Hiding the track removes the artifact;
+ * the sidebar remains scrollable via wheel and keyboard.
+ * ──────────────────────────────────────────────────────────────────── */
+.md-sidebar--primary .md-sidebar__scrollwrap {
+  scrollbar-width: none;
+}
+.md-sidebar--primary .md-sidebar__scrollwrap::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile drawer: show full navigation.
+   On desktop, .md-nav--lifted hides all top-level nav items except the active
+   section because the tab bar handles top-level navigation. On mobile the tab
+   bar is display:none, so the hamburger drawer is the ONLY navigation path.
+   Without this fix the drawer shows only the current section (or nothing on the
+   homepage), leaving keyboard and VoiceOver users unable to reach other sections.
+   The active section keeps its sticky-label treatment from Material's CSS. */
+@media screen and (max-width: 76.234375em) {
+  .md-nav--primary.md-nav--lifted > .md-nav__list > .md-nav__item {
+    display: block !important;
+  }
+}
+
+/* ── WCAG 1.4.11: collapsible admonition arrow contrast ─────────────
+ *
+ * Material colors the expand/collapse chevron (details/summary::after)
+ * with each admonition type's stock accent color at full strength, on a
+ * header background of that same accent at 10% over the page surface.
+ * In light mode 9 of the 12 types land under the 3:1 minimum for UI
+ * components (as low as 1.66:1 for "question"). Only the ::after arrow
+ * is touched here — it's the interactive control; the ::before type
+ * icon is decorative and uses a separate background-color rule.
+ *
+ * These target 4.5:1, not the 3:1 the success criterion asks for, and
+ * cover all 12 types rather than only the ones that fail outright.
+ * That is deliberate — do not "relax" them back toward stock.
+ *
+ * Why the extra headroom: the first pass (2026-08-11) darkened 9 types
+ * to ~3.3-3.5:1, which passes 1.4.11 on the numbers. Ablr re-tested
+ * docs.aptrust.org on 2026-08-17 and reported the arrow "measures the
+ * same as on 6/16/26". It had in fact moved (note: 2.98:1 -> 3.31:1).
+ * The reason it read as unchanged is that the chevron is a 20px
+ * mask-image SVG: rasterized at 2x DPR it has 108 ink pixels and only
+ * 68 of them (63%) are fully opaque. The other 37% are anti-aliased
+ * edge pixels — the entire visible boundary of the glyph — and over the
+ * tint they measure 1.24-2.56:1 at both the old and the new color. An
+ * eyedropper that lands on the edge rather than the interior therefore
+ * reads a failing value that barely differs between the two. A 3:1
+ * interior is not defensible on a glyph whose border is mostly partial
+ * coverage; at 4.5:1 the high-alpha edge pixels clear 3:1 on their own,
+ * so the result stops depending on which pixel gets sampled.
+ *
+ * The two schemes need different values and must stay split. The arrow
+ * sits on a light tint in default and on a dark slate surface in slate,
+ * so darkening past ~3.5:1 for light mode drops slate BELOW 3:1 — the
+ * single-value version of this block measured 2.75-2.86:1 across all 12
+ * types in slate. In slate most stock accents already clear 4.5:1 and
+ * are left alone; only the four below miss it.
+ *
+ * Values keep each type's hue and saturation (HSL lightness only) and
+ * are computed at 4.6:1 so rounding in a checker still reports >= 4.5.
+ * Verified against each type's own rendered header background in both
+ * schemes, not against page white. */
+
+/* Light scheme — arrow on the 10% tint over white. */
+[data-md-color-scheme="default"] .md-typeset .note > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .note > summary::after {
+  color: #0060ff;
+}
+[data-md-color-scheme="default"] .md-typeset .abstract > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .abstract > summary::after {
+  color: #0075aa;
+}
+[data-md-color-scheme="default"] .md-typeset .info > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .info > summary::after {
+  color: #007a8c;
+}
+[data-md-color-scheme="default"] .md-typeset .tip > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .tip > summary::after {
+  color: #007d6c;
+}
+[data-md-color-scheme="default"] .md-typeset .success > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .success > summary::after {
+  color: #008135;
+}
+[data-md-color-scheme="default"] .md-typeset .question > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .question > summary::after {
+  color: #3a800d;
+}
+[data-md-color-scheme="default"] .md-typeset .warning > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .warning > summary::after {
+  color: #a55e00;
+}
+[data-md-color-scheme="default"] .md-typeset .failure > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .failure > summary::after {
+  color: #dc0000;
+}
+[data-md-color-scheme="default"] .md-typeset .danger > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .danger > summary::after {
+  color: #d6002a;
+}
+[data-md-color-scheme="default"] .md-typeset .bug > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .bug > summary::after {
+  color: #d2004b;
+}
+[data-md-color-scheme="default"] .md-typeset .example > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .example > summary::after {
+  color: #7442ff;
+}
+[data-md-color-scheme="default"] .md-typeset .quote > .admonition-title::after,
+[data-md-color-scheme="default"] .md-typeset .quote > summary::after {
+  color: #6f6f6f;
+}
+
+/* Slate scheme — arrow on the 10% tint over the dark surface.
+ * All 12 are stated explicitly rather than letting the un-overridden
+ * ones inherit Material's stock accent: several of those stock values
+ * sit close to the line (failure is 4.49:1) and a theme bump could move
+ * them silently. Eight of these ARE the stock value today — they are
+ * repeated here so the contrast of every type is pinned in one place. */
+[data-md-color-scheme="slate"] .md-typeset .note > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .note > summary::after {
+  color: #5192ff;
+}
+[data-md-color-scheme="slate"] .md-typeset .abstract > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .abstract > summary::after {
+  color: #00b0ff;
+}
+[data-md-color-scheme="slate"] .md-typeset .info > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .info > summary::after {
+  color: #00b8d4;
+}
+[data-md-color-scheme="slate"] .md-typeset .tip > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .tip > summary::after {
+  color: #00bfa5;
+}
+[data-md-color-scheme="slate"] .md-typeset .success > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .success > summary::after {
+  color: #00c853;
+}
+[data-md-color-scheme="slate"] .md-typeset .question > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .question > summary::after {
+  color: #64dd17;
+}
+[data-md-color-scheme="slate"] .md-typeset .warning > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .warning > summary::after {
+  color: #ff9100;
+}
+[data-md-color-scheme="slate"] .md-typeset .failure > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .failure > summary::after {
+  color: #ff5757;
+}
+[data-md-color-scheme="slate"] .md-typeset .danger > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .danger > summary::after {
+  color: #ff496c;
+}
+[data-md-color-scheme="slate"] .md-typeset .bug > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .bug > summary::after {
+  color: #ff4084;
+}
+[data-md-color-scheme="slate"] .md-typeset .example > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .example > summary::after {
+  color: #9c78ff;
+}
+[data-md-color-scheme="slate"] .md-typeset .quote > .admonition-title::after,
+[data-md-color-scheme="slate"] .md-typeset .quote > summary::after {
+  color: #9e9e9e;
+}
+
+/* WCAG 1.4.3: code block punctuation/operator/comment/variable/generic
+ * tokens (Pygments classes .p .o .ow .c* .gp etc.) inherit
+ * --md-default-fg-color--light, which is #0000008a (54% black). Against
+ * the code block background (--md-code-bg-color: #f5f5f5) that only
+ * reaches 4.47:1, just under the 4.5:1 AA minimum for regular text.
+ * Scoped to the light/default scheme only — slate's equivalent variable
+ * already passes against its darker code background, so it's left alone. */
+[data-md-color-scheme="default"] {
+  --md-code-hl-operator-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-punctuation-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-generic-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-variable-color: rgba(0, 0, 0, 0.65);
+  --md-code-hl-comment-color: rgba(0, 0, 0, 0.65);
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar semantics (Ablr 1.3.1 "Incorrect semantic markup", Serious).
+ *
+ * overrides/partials/nav.html, nav-item.html and toc.html replace Material's
+ * CSS-only <label>/checkbox sidebar chrome with elements that mean what they
+ * look like: real <h2>-<h6> for the visual headings, real <button> for the
+ * controls. Every Material class is preserved, so all of the theme's own
+ * layout, colour and breakpoint rules still apply and the sidebar is visually
+ * unchanged. These rules exist ONLY to strip the user-agent defaults that come
+ * with <button> and <h*> and that <label> did not have.
+ *
+ * Do not "simplify" this by going back to <label> — see the comment block in
+ * overrides/partials/nav-item.html for why attribute patching cannot work.
+ * ------------------------------------------------------------------------- */
+
+/* <button> UA reset. inherit font/colour so the buttons render exactly as the
+ * labels did; width/text-align restore the block-level layout <label> had.
+ *
+ * NOTE: font longhands, not the `font` shorthand. The shorthand also sets
+ * font-weight, and at specificity 0,1,1 it beats Material's own
+ * `.md-nav__title { font-weight: 700 }` (0,1,0), which silently un-bolds any
+ * nav title rendered as a button. Leaving font-weight out lets the theme's
+ * rules apply and still overrides the user-agent default, since any author
+ * rule beats UA. */
+button.md-nav__link,
+button.md-nav__title {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+button.md-nav__link {
+  cursor: pointer;
+}
+
+/* <h*> UA reset. Material sizes nav text from .md-nav__link / .md-nav__title;
+ * heading elements would otherwise bring their own font-size and margins.
+ * font-weight is deliberately NOT reset: the UA default for h1-h6 is bold,
+ * which is exactly what Material already specifies for .md-nav__title and for
+ * .md-nav__item--section > .md-nav__link. Resetting it dropped the table of
+ * contents heading to weight 400. */
+.md-nav__title-label,
+h1.md-nav__link, h2.md-nav__link, h3.md-nav__link,
+h4.md-nav__link, h5.md-nav__link, h6.md-nav__link,
+h1.md-nav__title, h2.md-nav__title, h3.md-nav__title,
+h4.md-nav__title, h5.md-nav__title, h6.md-nav__title {
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+/* The site title inside the drawer header. Material's .md-nav__title supplies
+ * the box; the <h2> inside it is purely semantic and must not add its own. */
+.md-nav__title-label {
+  display: inline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Section items render as two elements — see the long comment in
+ * overrides/partials/nav-item.html. Material scopes every one of its
+ * .md-nav__item--section rules to min-width:76.25em, so a section is an inert
+ * heading only on desktop; inside the drawer it is a real slide-in panel
+ * toggle with a chevron. Show exactly one of the pair at each width.
+ * display:none (rather than visually-hiding) is deliberate: it takes the
+ * inapplicable element out of the accessibility tree entirely, so a screen
+ * reader never meets the same item twice with two different roles. */
+@media screen and (max-width: 76.234375em) {
+  .md-nav__link--section {
+    display: none;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-nav__link--section-toggle {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Drawer reflow (Ablr 1.4.10 "Reflow", Serious — "Info or functionality is
+ * unavailable at 320px width equivalent").
+ *
+ * Material's mobile drawer is a STACK of absolutely-positioned panels, and at
+ * the drawer breakpoint it hides the ones you cannot see with nothing but a
+ * transform:
+ *
+ *     .md-nav__toggle ~ .md-nav { display:flex; opacity:0;
+ *                                 transform:translateX(100%) }
+ *
+ * No display:none and no visibility:hidden — so every link inside every
+ * COLLAPSED panel stays focusable and stays in the accessibility tree, one full
+ * drawer-width off-canvas. (Above 76.25em Material uses visibility:collapse for
+ * the same state, which is why this is a mobile-only defect — i.e. exactly the
+ * reflow case the auditor tested.) overrides/main.html strips tabindex="-1"
+ * from every sidebar control when the drawer opens, so nothing else holds them
+ * back either: measured on /user-guide/ at 320px, 224 of 225 sidebar controls
+ * were tabbable and only ~20 were on screen. Tabbing off "Preservation Actions"
+ * landed in its collapsed panel at x=242; the browser scrolled to reveal the
+ * focused element and shoved the visible panel away — the auditor's "the
+ * submenu items under the expanding menu items disappear".
+ *
+ * An OPEN panel is position:absolute; top:0; height:100%; z-index:1 with an
+ * opaque background, so it also completely covers its parent panel. Those
+ * covered controls have the same problem for the same reason.
+ *
+ * Fix: make focusability track what is actually on screen. visibility is the
+ * right property because it is the only one a descendant can turn back ON,
+ * which is what lets the "hide the covered panel" rule and the "show the open
+ * panel" rule compose without fighting.
+ *
+ * Scoped to .md-sidebar--primary, which also picks up the in-drawer table of
+ * contents (nav-item.html renders it inside the primary nav, gated on __toc) —
+ * it is off-canvas in exactly the same way.
+ *
+ * Like the compatibility shims below, these rules reproduce Material's own
+ * transition timings: re-diff them when bumping the theme.
+ * ------------------------------------------------------------------------- */
+
+@media screen and (max-width: 76.234375em) {
+  /* Collapsed panel: off-canvas, so take it out of the tab order and the
+     accessibility tree. The 250ms visibility delay matches Material's own
+     desktop rule so the slide-out still animates before it disappears. */
+  .md-sidebar--primary .md-nav__toggle ~ .md-nav {
+    visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.8, 0, 0.6, 1),
+                opacity 125ms 50ms,
+                visibility 0ms 250ms;
+  }
+
+  /* A panel whose direct child panel is open is completely covered by it. Hide
+     the covered panel's own chrome — its title/back button, its Close button
+     and its list. The open child sits inside that list and re-declares
+     visibility below, so it stays on screen. */
+  .md-sidebar--primary
+    .md-nav:has(> .md-nav__list > .md-nav__item > .md-nav__toggle:checked)
+    > .md-nav__title,
+  .md-sidebar--primary
+    .md-nav:has(> .md-nav__list > .md-nav__item > .md-nav__toggle:checked)
+    > .md-nav__close-button,
+  .md-sidebar--primary
+    .md-nav:has(> .md-nav__list > .md-nav__item > .md-nav__toggle:checked)
+    > .md-nav__list {
+    visibility: hidden;
+  }
+
+  /* The panel the user is actually looking at. Declared last and on the element
+     itself, so it wins over the inherited `hidden` from either rule above.
+     (If a browser does not support :has(), the middle rule is dropped whole and
+     this degrades to a partial fix — never to a broken drawer.) */
+  .md-sidebar--primary .md-nav__toggle:checked ~ .md-nav {
+    visibility: visible;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 125ms 125ms,
+                visibility 0ms;
+  }
+
+  /* Belt and braces for the mechanism itself. The panels are absolutely
+     positioned at translateX(100%), so this wrapper's scrollWidth is the width
+     of every panel in the tree (measured: 1210px for five levels at 242px).
+     Material gives it `overflow: hidden`, which hides that overflow but leaves
+     the box SCROLLABLE — so anything that scrolls an element into view drags
+     the whole drawer sideways, which is what made the finding look like
+     "the submenu items disappear".
+
+     `clip` is the same painting behaviour with no scroll container, so the
+     browser cannot move it at all — no focus reveal, no scrollIntoView, no
+     anchor jump. The rules above should already keep focus out of those panels;
+     this makes the failure mode unreachable rather than merely unused. Browsers
+     without `overflow: clip` ignore the declaration and keep Material's
+     `hidden`. Drawer breakpoint only: on desktop this wrapper is the sidebar's
+     real scroll container.
+
+     Both axes, not just overflow-x: per CSS Overflow 3, `clip` on one axis
+     computes back to `hidden` unless the other axis is also `clip`, so
+     `overflow-x: clip` alone silently does nothing here (verified — the box
+     stayed scrollable). Material already has this wrapper at `overflow: hidden`
+     inside the drawer; the vertical scrolling is done by
+     `.md-nav--primary .md-nav__title ~ .md-nav__list`, which is untouched. */
+  .md-sidebar--primary .md-sidebar__scrollwrap {
+    overflow: clip;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Drawer panel headers (Ablr 1.3.1 "Visual heading text is not marked as
+ * heading", Serious).
+ *
+ * overrides/partials/{nav-item,toc}.html split each drawer panel's header into
+ * the two things it actually is: an icon-only back <button> and a real heading.
+ * Material's own geometry makes this free — `.md-nav--primary .md-nav__title`
+ * is a 5.6rem box with `padding: 3rem .8rem .2rem`, so the title text sits at
+ * the bottom and the chevron is absolutely positioned in the empty 3rem above
+ * it. The two never overlapped; they were just wrapped in one control.
+ *
+ * The button is given an explicit 2.2rem (44px) box so the target is
+ * comfortably over the WCAG 2.5.8 minimum, and the chevron inside it is
+ * switched to static flow so it centres in that box instead of positioning
+ * itself against .md-nav__title — which lands it back on exactly the pixels it
+ * occupied before (12px, 12px), i.e. no visual change at all.
+ * ------------------------------------------------------------------------- */
+
+.md-nav--primary .md-nav__title--back .md-nav__back-button {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  position: absolute;
+  top: 0.1rem;
+  height: 2.2rem;
+  width: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[dir="ltr"] .md-nav--primary .md-nav__title--back .md-nav__back-button {
+  left: 0.1rem;
+}
+
+[dir="rtl"] .md-nav--primary .md-nav__title--back .md-nav__back-button {
+  right: 0.1rem;
+}
+
+/* Material positions this chevron absolutely against .md-nav__title. Inside the
+ * button it has to flow normally, or it ignores the button entirely. */
+.md-nav--primary .md-nav__title--back .md-nav__back-button .md-nav__icon {
+  position: static;
+  margin: 0;
+  height: 1.2rem;
+  width: 1.2rem;
+}
+
+/* Material sets cursor:pointer on .md-nav__title because upstream the whole box
+ * is a <label>. Both of our title boxes are inert <div>s now — only the back
+ * button inside them is clickable. */
+.md-nav--primary .md-nav__title {
+  cursor: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Compatibility shims for Material rules keyed on [for=...].
+ *
+ * Several of Material's own rules select on the literal attribute values
+ * `[for=__drawer]` and `[for=__toc]`. Those elements are no longer <label>s and
+ * no longer carry `for`, so the rules stopped matching. Each shim below
+ * reproduces one upstream rule verbatim against the equivalent class, at the
+ * same breakpoint. Keep them in sync with the theme when re-diffing the
+ * partials after an upgrade.
+ *
+ * (The `.md-nav--integrated` variants of the __toc rules are deliberately not
+ * reproduced — they only apply with the toc.integrate feature, which this site
+ * does not enable.)
+ * ------------------------------------------------------------------------- */
+
+/* --- header toggles (overrides/partials/header.html) --- */
+
+/* was: @media (min-width:76.25em){.md-header__button[for=__drawer]{display:none}}
+   Without this the hamburger stays visible on desktop, where there is no
+   drawer to open. */
+@media screen and (min-width: 76.25em) {
+  .md-header__button[data-md-toggle-target="__drawer"] {
+    display: none;
+  }
+}
+
+/* was: @media (min-width:60em){.md-header__button[for=__search]{display:none}}
+   Above 60em the search field is shown inline, so the icon that opens the
+   search overlay is redundant. */
+@media screen and (min-width: 60em) {
+  .md-header__button[data-md-toggle-target="__search"] {
+    display: none;
+  }
+}
+
+/* was: .no-js .md-header__button[for=__search]{display:none} */
+.no-js .md-header__button[data-md-toggle-target="__search"] {
+  display: none;
+}
+
+/* was: [dir=rtl] .md-header__button[for=__search] svg{transform:scaleX(-1)} */
+[dir="rtl"] .md-header__button[data-md-toggle-target="__search"] svg {
+  transform: scaleX(-1);
+}
+
+/* --- sidebar (overrides/partials/nav.html, nav-item.html, toc.html) --- */
+
+/* was: .md-nav--primary .md-nav__link[for=__toc]{display:none} */
+.md-nav--primary .md-nav__link--toc {
+  display: none;
+}
+
+/* was: .md-nav--primary .md-nav__link[for=__toc]~.md-nav{display:none} */
+.md-nav--primary .md-nav__link--toc ~ .md-nav {
+  display: none;
+}
+
+/* was: .md-nav--primary .md-nav__link[for=__toc] .md-icon:after{...} */
+.md-nav--primary .md-nav__link--toc .md-icon::after {
+  background-color: currentcolor;
+  display: block;
+  height: 100%;
+  -webkit-mask-image: var(--md-toc-icon);
+  mask-image: var(--md-toc-icon);
+  width: 100%;
+}
+
+@media screen and (max-width: 59.984375em) {
+  /* was: .md-nav--primary .md-nav__link[for=__toc]{display:flex} */
+  .md-nav--primary .md-nav__link--toc {
+    display: flex;
+  }
+  .md-nav--primary .md-nav__link--toc .md-icon::after {
+    content: "";
+  }
+  /* was: .md-nav--primary .md-nav__link[for=__toc]+.md-nav__link{display:none} */
+  .md-nav--primary .md-nav__link--toc + .md-nav__link {
+    display: none;
+  }
+  /* was: .md-nav--primary .md-nav__link[for=__toc]~.md-nav{display:flex} */
+  .md-nav--primary .md-nav__link--toc ~ .md-nav {
+    display: flex;
+  }
+}
+
+@media screen and (min-width: 60em) {
+  /* was: .md-nav--secondary .md-nav__title[for=__toc]{scroll-snap-align:start} */
+  .md-nav--secondary .md-nav__title--heading {
+    scroll-snap-align: start;
+  }
+}
+
+@media screen and (max-width: 76.234375em) {
+  /* was: .md-nav--primary .md-nav__title[for=__drawer]{...} — the indigo drawer
+     header. `> .md-nav__title` is the drawer header specifically; nested panel
+     titles are deeper and keep their own (white) treatment from the rule above. */
+  .md-nav--primary > .md-nav__title {
+    background-color: var(--md-primary-fg-color);
+    color: var(--md-primary-bg-color);
+    font-weight: 700;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  /* was: .md-nav--primary .md-nav__title[for=__drawer]{scroll-snap-align:start} */
+  .md-nav--primary > .md-nav__title {
+    scroll-snap-align: start;
+  }
+}
+
+/* Focus indicator for the new buttons, matching the existing nav treatment. */
+button.md-nav__link:focus-visible,
+button.md-nav__title:focus-visible,
+.md-nav__back-button:focus-visible,
+.md-nav__close-button:focus-visible {
+  outline: 2px solid #FFD600;
+  outline-offset: -2px;
+}
