@@ -57,6 +57,8 @@ tools/
 
 At build time, each sub-repo is cloned into `repos/` at the project root. The `mkdocs-monorepo-plugin` reads each sub-repo's `mkdocs.yml` to get its navigation tree, then merges all four into a single site. Sub-repos live in `repos/` rather than `docs/` so MkDocs's own file scanner doesn't pick them up as a second copy of the content.
 
+The monorepo plugin reads **only** `nav` and `docs_dir` from a sub-repo's config — it never runs that sub-repo's `plugins:` block. Anything a sub-repo declares there has to be re-declared in this repo's `mkdocs.yml` instead, rewritten against the merged tree (so paths carry the sub-repo's URL prefix). The `redirects` entries for `/user-guide/bagging/` are the current example.
+
 ```
 repos/               ← created at build time, not committed
 ├── preserv/         ← clone of APTrust/preserv-docs
@@ -78,6 +80,11 @@ The build-and-deploy workflow runs on four triggers:
 4. **Nightly at 07:00 UTC** (3:00 AM EDT / 2:00 AM EST) — picks up changes to the Member API OpenAPI spec, which lives in `APTrust/registry` and sends no dispatch event here. The nightly run also commits the refreshed spec back to `main` when it has changed upstream. Note that GitHub disables scheduled workflows after 60 days of no commit activity in a repo; if that happens, re-enable it from the Actions tab.
 
 The workflow clones the four sub-repos, runs `mkdocs build`, and deploys the output to the `gh-pages` branch via [peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages). GitHub Pages serves from that branch.
+
+`docs.aptrust.org` is then **proxied through Cloudflare**, which terminates TLS in front of GitHub Pages. Two consequences worth knowing:
+
+- GitHub Pages' **Enforce HTTPS** setting cannot be turned on for this site — GitHub can't validate a certificate for a hostname it doesn't answer for directly, and the API returns `The certificate does not exist yet`.
+- The **http → https redirect is a Cloudflare Single Redirect rule** (Rules → Redirect Rules), scoped to `http://docs.aptrust.org/*` so the rest of the aptrust.org zone is unaffected. It isn't configured anywhere in this repo, so that's where to look if http ever stops redirecting.
 
 ## Building locally
 

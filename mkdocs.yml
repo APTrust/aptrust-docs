@@ -30,11 +30,22 @@ theme:
     - navigation.sections
     - navigation.instant
     - search.highlight
-    - search.share
 
 plugins:
   - search
   - monorepo
+  # mkdocs-monorepo-plugin reads only `nav` and `docs_dir` out of each sub-repo's
+  # mkdocs.yml — it never runs their `plugins:` blocks. userguide declares these
+  # two redirects in repos/userguide/mkdocs.yml, so before this they were simply
+  # dropped and /user-guide/bagging/ 404'd on the live site. Re-declared here
+  # against the *merged* tree, which is why the paths carry the `user-guide/`
+  # prefix that monorepo adds. Must stay after `monorepo`: mkdocs-redirects
+  # resolves targets in on_files, so the merge has to have happened first, and an
+  # unresolvable target is only a warning, not an error.
+  - redirects:
+      redirect_maps:
+        'user-guide/bagging/index.md': 'user-guide/depositing/index.md'
+        'user-guide/bagging/tools.md': 'user-guide/depositing/tools.md'
   - swagger-ui-tag
 
 markdown_extensions:
