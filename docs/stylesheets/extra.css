@@ -78,11 +78,45 @@
   color: #828282 !important;
 }
 
+/* ── Focus-ring colour token (WCAG 1.4.11 / 2.4.11) ──────────────────
+ *
+ * Every focus ring below uses --aptrust-focus-ring. The value MUST stay
+ * split by scheme; one colour cannot serve both surfaces.
+ *
+ * This shipped as #FFD600 (brand yellow) in both schemes, on the claim
+ * that it gave "13:1 on white". That number was measured against BLACK.
+ * #FFD600 on #FFFFFF is 1.41:1 — exactly what Ablr's Colour Contrast
+ * Analyser reported (1.4:1) on 2026-08-28, and nowhere near the 3:1
+ * that 1.4.11 (Non-text Contrast) and 2.4.11 (Focus Appearance) require
+ * of a focus indicator.
+ *
+ * Light scheme: #A55E00 on white = 5.0:1. Same hue family, so the ring
+ *   still reads as the site's warm/gold indicator; #A55E00 is already
+ *   in this file as the light-scheme `warning` admonition arrow.
+ * Slate: the yellow was never the problem there — #FFD600 on the slate
+ *   surface is ~11:1 — so it is kept.
+ *
+ * Deliberately ONE solid colour per scheme, not a two-tone yellow+dark
+ * ring. Two-tone passes on the numbers but hands an eyedropper a
+ * failing band to land on, which is precisely how the admonition-arrow
+ * fix got re-reported as unchanged (see that block at the end of this
+ * file). Every sampled pixel of this ring passes.
+ *
+ * tools/a11y-check/check.mjs asserts this at every real Tab stop
+ * (focus-ring-low-contrast / focus-ring-missing).
+ * ──────────────────────────────────────────────────────────────────── */
+:root {
+  --aptrust-focus-ring: #A55E00;
+}
+[data-md-color-scheme="slate"] {
+  --aptrust-focus-ring: #FFD600;
+}
+
 /* WCAG 2.1.1: scrollable nav list containers get tabindex="0" via JS so
    Safari keyboard users can scroll them. Show a focus ring so the tab stop
    is visible (WCAG 2.4.7). Inset offset keeps it inside the container. */
 .md-nav__list[tabindex="0"]:focus {
-  outline: 2px solid #FFD600;
+  outline: 2px solid var(--aptrust-focus-ring);
   outline-offset: -2px;
 }
 
@@ -97,10 +131,11 @@
 /* ── WCAG 2.4.7 / 2.4.11: Visible keyboard focus indicators ─────── */
 
 /* Default focus style for all interactive elements in body content.
-   Yellow #FFD600 on white gives 13:1 contrast — well above the 3:1
-   minimum required for UI component focus indicators (WCAG 1.4.11). */
+   Colour comes from --aptrust-focus-ring (see the token block above for
+   the measured ratio in each scheme). Width stays 2px: 2.4.11 asks for
+   an indicator area at least as large as a 2px perimeter of the control. */
 :focus-visible {
-  outline: 2px solid #FFD600 !important;
+  outline: 2px solid var(--aptrust-focus-ring) !important;
   outline-offset: 2px !important;
 }
 
@@ -112,10 +147,45 @@
   outline-offset: 3px !important;
 }
 
-/* Sidebar nav links appear on a white background — use the yellow
-   focus ring here too. */
+/* Exceptions inside the header: the search UI. All of it sits on the page
+   surface rather than on indigo, so the white ring above measured invisible
+   there — found by the focus-contrast probe in tools/a11y-check, not by the
+   auditor.
+
+   Focusing the search field activates the search, and the active form takes
+   the page background: white in default, #1e2129 in slate. The white ring is
+   then 1:1 on it. This is true at BOTH widths — on desktop the form is a
+   translucent black over indigo for the first few frames after focus and only
+   then turns white, so a probe that measures in the same tick as the Tab reads
+   a passing 9.95:1 for a state the user never rests in. The steady state is
+   what matters, and it takes the scheme token: 5:1 in default, 11.4:1 in slate.
+
+   The results pane follows the scheme the same way. Its ring is inset because
+   the pane fills the viewport below the header — an outward ring would land
+   off-screen at the sides and on the search form above. */
+.md-header .md-search__input:focus-visible,
+.md-header .md-search__output :focus-visible {
+  outline-color: var(--aptrust-focus-ring) !important;
+}
+
+.md-header .md-search__scrollwrap:focus-visible {
+  outline-color: var(--aptrust-focus-ring) !important;
+  outline-offset: -2px !important;
+}
+
+/* The footer is a dark surface in BOTH schemes (#171717 / #111317), so it
+   takes the yellow rather than the light-scheme amber: amber measures 3.6:1
+   there — passing, but with no headroom left for an eyedropper that lands on
+   an anti-aliased corner, which is exactly how the admonition-arrow fix got
+   re-reported. Yellow is 12.7:1 on that surface. */
+.md-footer :focus-visible {
+  outline-color: #FFD600 !important;
+}
+
+/* Sidebar nav links sit on the page surface, not the header — so they
+   take the standard ring, not the white header override above. */
 .md-nav__link:focus-visible {
-  outline: 2px solid #FFD600 !important;
+  outline: 2px solid var(--aptrust-focus-ring) !important;
   outline-offset: 2px !important;
 }
 
@@ -173,9 +243,12 @@
   color: var(--md-default-fg-color) !important;
 }
 
-/* All sidebar links sit on a white background — yellow focus ring throughout. */
+/* All sidebar links sit on the page surface — standard ring throughout.
+   The inset offset is load-bearing: .md-sidebar__scrollwrap is
+   `overflow: clip` at the drawer breakpoint, so an outward ring on a
+   sidebar control would be clipped. Do not make these positive. */
 .md-sidebar--primary .md-nav__link:focus {
-  outline: 2px solid #FFD600;
+  outline: 2px solid var(--aptrust-focus-ring);
   outline-offset: -2px;
 }
 
@@ -201,7 +274,7 @@
     cursor: pointer;
   }
   .md-nav__close-button:focus-visible {
-    outline: 2px solid #FFD600;
+    outline: 2px solid var(--aptrust-focus-ring);
     outline-offset: 2px;
   }
 }
@@ -790,6 +863,6 @@ button.md-nav__link:focus-visible,
 button.md-nav__title:focus-visible,
 .md-nav__back-button:focus-visible,
 .md-nav__close-button:focus-visible {
-  outline: 2px solid #FFD600;
+  outline: 2px solid var(--aptrust-focus-ring);
   outline-offset: -2px;
 }

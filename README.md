@@ -116,7 +116,15 @@ Because those partials are forks, `requirements.txt` pins `mkdocs-material` to
 the exact version they were taken from. Re-diff them against the installed theme
 before bumping it; each file's header comment carries the upstream checksum.
 
-Before shipping a change that touches the header, sidebar, or `overrides/`, run:
+Focus indicators come from one token, `--aptrust-focus-ring` in
+`docs/stylesheets/extra.css`: amber `#A55E00` on the light scheme, the brand
+yellow `#FFD600` on the dark one. It is split that way on purpose — no single
+colour clears the 3:1 that WCAG 1.4.11 asks of a focus indicator against both a
+white and a slate surface. Change it in one scheme without checking the other
+and half the site loses its visible focus.
+
+Before shipping a change that touches the header, sidebar, focus styles, or
+`overrides/`, run:
 
 ```bash
 cd tools/a11y-check && npm run a11y
@@ -124,7 +132,9 @@ cd tools/a11y-check && npm run a11y
 
 It sweeps 7 pages at 4 viewport states (including the mobile drawer open at
 320px, the width WCAG 1.4.10 Reflow names) with axe-core plus assertions read
-from Chrome's real accessibility tree, and writes an evidence pack to `report/`.
+from Chrome's real accessibility tree, a focus-trap probe and a focus-ring
+contrast probe (both driven by real key presses, in both palettes), and writes
+the evidence packs to `report/`.
 See [tools/a11y-check/README.md](tools/a11y-check/README.md), and the
 **Accessibility** section of `CLAUDE.md` for the design rationale and the manual
 VoiceOver checklist that automation cannot replace.

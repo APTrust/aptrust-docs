@@ -439,6 +439,190 @@ async function probeFocusTrap(page) {
   return fail;
 }
 
+/* Focus-ring contrast probe (every state, both palettes).
+
+   The finding this guards: the ring shipped as #FFD600, which is 1.41:1 on
+   white — the "13:1" in the CSS comment had been measured against black.
+   Nothing in this tool caught it. axe scores text against its background and
+   the AX tree carries no colour at all, so an outline a control paints only
+   while focused is invisible to both layers.
+
+   Like probeFocusTrap, this needs REAL Tab presses: :focus-visible does not
+   reliably match on a programmatic .focus(), so reading computed styles after
+   el.focus() would measure a rule that never fires for a keyboard user.
+
+   Both palettes are measured on every page. They are genuinely different
+   tests — the ring colour is a scheme-split token (see the token block in
+   extra.css) precisely because no single value clears 3:1 on both a white and
+   a slate surface. Swapping the attribute Material keys its own variables off
+   renders the other palette without touching the palette toggle's storage. */
+
+const RING_MIN = 3;         /* WCAG 1.4.11 / 2.4.11 */
+const RING_MAX_STOPS = 30;  /* per page, per palette */
+
+/* An IIFE, not a bare arrow: page.evaluate() treats a string as an
+   expression, so a function literal would evaluate to the function itself.
+   Same shape as STRUCTURAL_CHECKS above. */
+const MEASURE_STOP = `(() => {
+  const el = document.activeElement;
+  if (!el || el === document.body || el === document.documentElement) return { kind: 'none' };
+  /* Focus moved inside the Swagger iframe: the top document only sees the
+     <iframe>, whose own outline says nothing about the controls in there. */
+  if (el.tagName === 'IFRAME') return { kind: 'skip' };
+
+  const seen = el.hasAttribute('data-focus-probe');
+  el.setAttribute('data-focus-probe', '1');
+
+  const parse = (c) => {
+    const m = /rgba?\\(([^)]+)\\)/.exec(c || '');
+    if (!m) return null;
+    const p = m[1].split(',').map((v) => parseFloat(v));
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  };
+  const over = (top, bottom) => ({
+    r: top.r * top.a + bottom.r * (1 - top.a),
+    g: top.g * top.a + bottom.g * (1 - top.a),
+    b: top.b * top.a + bottom.b * (1 - top.a),
+    a: 1,
+  });
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  };
+  const ratio = (x, y) => {
+    const a = lum(x), b = lum(y);
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  };
+  const hex = (c) => '#' + [c.r, c.g, c.b]
+    .map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+  const cs = getComputedStyle(el);
+  const width = parseFloat(cs.outlineWidth) || 0;
+  const offset = parseFloat(cs.outlineOffset) || 0;
+  const text = (el.getAttribute('aria-label') ||
+                (el.textContent || '').trim().split('\\n')[0].trim()).slice(0, 40);
+  const at = el.tagName +
+    (el.className ? '.' + String(el.className).trim().split(/\\s+/)[0] : '') + ' "' + text + '"';
+
+  if (cs.outlineStyle === 'none' || width === 0) {
+    return { kind: 'missing', at, seen, boxShadow: cs.boxShadow };
+  }
+
+  /* A negative offset paints the ring over the element's own background; any
+     other offset paints it over whatever is behind the element. Composite the
+     stack from the first opaque layer back up, so alpha backgrounds (Material
+     uses plenty) resolve to the colour an eyedropper would actually read. */
+  /* Only count an ancestor that actually paints behind this control. The ring
+     hugs the control, so the test is whether the ancestor's box contains the
+     control's box: the 48px-tall header does contain its own buttons, but it
+     does not contain the search results pane that hangs below it — and walking
+     the tree blindly reported that pane's ring as sitting on indigo (6.86:1)
+     when what is really behind it is the page surface. 1px of slack absorbs
+     subpixel rounding. */
+  const r = el.getBoundingClientRect();
+  const covers = (n) => {
+    if (n === document.body || n === document.documentElement) return true;
+    const q = n.getBoundingClientRect();
+    return q.left <= r.left + 1 && q.top <= r.top + 1 &&
+           q.right >= r.right - 1 && q.bottom >= r.bottom - 1;
+  };
+
+  const layers = [];
+  for (let n = offset < 0 ? el : el.parentElement; n; n = n.parentElement) {
+    if (n !== el && !covers(n)) continue;
+    const c = parse(getComputedStyle(n).backgroundColor);
+    if (c && c.a > 0) { layers.push(c); if (c.a === 1) break; }
+  }
+  let bg = { r: 255, g: 255, b: 255, a: 1 };
+  for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
+
+  let ring = parse(cs.outlineColor) || { r: 0, g: 0, b: 0, a: 1 };
+  if (ring.a < 1) ring = over(ring, bg);
+
+  return { kind: 'ok', at, seen, width, offset,
+           ring: hex(ring), bg: hex(bg), ratio: Math.round(ratio(ring, bg) * 100) / 100 };
+})()`;
+
+async function probeFocusContrast(page) {
+  const fail = [];
+  const stops = [];
+  /* One failure per distinct colour pair, not one per tab stop: a bad token
+     shows up on every control on the page and 30 identical lines help nobody. */
+  const bad = new Map();
+
+  for (const scheme of ['default', 'slate']) {
+    const previous = await page.evaluate((s) => {
+      const host = document.body.hasAttribute('data-md-color-scheme')
+        ? document.body : document.documentElement;
+      const was = host.getAttribute('data-md-color-scheme');
+      host.setAttribute('data-md-color-scheme', s);
+      document.querySelectorAll('[data-focus-probe]').forEach((e) => e.removeAttribute('data-focus-probe'));
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      return was;
+    }, scheme);
+
+    let quiet = 0;
+    for (let i = 0; i < RING_MAX_STOPS; i++) {
+      await page.keyboard.press('Tab');
+      let m = await page.evaluate(MEASURE_STOP);
+      if (m.kind === 'none' || m.kind === 'skip') {
+        if (++quiet >= 5) break;            /* parked in the iframe or off the document */
+        continue;
+      }
+      quiet = 0;
+      if (m.seen) break;                    /* back round the ring — everything is measured */
+
+      /* Never judge a stop on a single sample: backgrounds animate. Focusing
+         the search field activates the overlay and its form fades to the page
+         colour over several frames, so a same-tick read measures the ring
+         against a surface the user never sits in front of — on desktop that
+         reads 9.95:1 mid-fade where the settled state is 1:1, and in slate it
+         catches a near-white #fbfbfb on the way to #1e2129. Re-read anything
+         in the search UI, and anything that looks like a failure, once it has
+         settled. */
+      if (m.kind === 'ok' && (m.ratio < RING_MIN || m.at.includes('md-search'))) {
+        await page.waitForTimeout(400);
+        const settled = await page.evaluate(MEASURE_STOP);
+        if (settled.kind === 'ok') { settled.seen = false; m = settled; }
+      }
+
+      if (m.kind === 'missing') {
+        const key = scheme + '|no-ring|' + m.at;
+        if (!bad.has(key)) {
+          bad.set(key, true);
+          fail.push({ check: 'focus-ring-missing',
+                      detail: `${scheme}: ${m.at} has no outline when focused` +
+                              (m.boxShadow && m.boxShadow !== 'none' ? ` (box-shadow: ${m.boxShadow})` : '') });
+        }
+        stops.push({ scheme, at: m.at, ring: null, bg: null, ratio: null });
+        continue;
+      }
+
+      stops.push({ scheme, at: m.at, ring: m.ring, bg: m.bg, ratio: m.ratio,
+                   width: m.width, offset: m.offset });
+      if (m.ratio < RING_MIN) {
+        const key = `${scheme}|${m.ring}|${m.bg}`;
+        const seen = bad.get(key);
+        if (seen) { seen.count++; continue; }
+        const entry = { count: 1 };
+        bad.set(key, entry);
+        fail.push({ check: 'focus-ring-low-contrast',
+                    detail: `${scheme}: ${m.ring} ring on ${m.bg} = ${m.ratio}:1 (needs ${RING_MIN}:1) — e.g. ${m.at}` });
+      }
+    }
+
+    await page.evaluate(([s, was]) => {
+      const host = document.body.hasAttribute('data-md-color-scheme')
+        ? document.body : document.documentElement;
+      if (was === null) host.removeAttribute('data-md-color-scheme');
+      else host.setAttribute('data-md-color-scheme', was);
+      document.querySelectorAll('[data-focus-probe]').forEach((e) => e.removeAttribute('data-focus-probe'));
+    }, [scheme, previous]);
+  }
+
+  return { fail, stops };
+}
+
 async function run() {
   if (!existsSync(SITE)) throw new Error(`No build at ${SITE} — run \`mkdocs build\` first.`);
   await rm(REPORT, { recursive: true, force: true });
@@ -553,7 +737,15 @@ async function run() {
       /* --- focus trap (needs real key presses; drawer states only) --- */
       const trapFail = state.drawer ? await probeFocusTrap(page) : [];
 
-      const allFail = [...structural, ...axFail, ...trapFail];
+      /* --- focus-ring contrast (real key presses, both palettes) --- */
+      const { fail: ringFail, stops: ringStops } = await probeFocusContrast(page);
+      /* Second evidence pack: the measured ring/background pair at every
+         keyboard stop. Send this to the auditor alongside the .ax.json — it
+         answers a colour-picker reading of one focused control with the number
+         at all of them, in both palettes. */
+      await writeFile(join(REPORT, `${id}.focus.json`), JSON.stringify(ringStops, null, 2));
+
+      const allFail = [...structural, ...axFail, ...trapFail, ...ringFail];
       failures += violations.length + allFail.length;
       results.push({ state: state.name, path, violations, structural: allFail });
 

@@ -26,18 +26,11 @@ header, Close button and back buttons are on screen. 320px is the width WCAG
 1.4.10 (Reflow) names and the width the auditor tested — 1366x768 zoomed to 200%
 is the same CSS viewport — and it is where the drawer is most cramped.
 
-## Two layers, because they catch different things
+## Three layers, because they catch different things
 
 **1. axe-core** — the same engine behind Deque's axe Auditor, which is what our
 external auditor runs. Tags: `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`,
 `wcag22aa`, `best-practice`.
-
-**2b. A focus-trap probe with real key presses** (`probeFocusTrap`). This one
-cannot be an in-page assertion: a synthetic `KeyboardEvent` does not move focus,
-so the only way to know whether Tab escapes the drawer is to press Tab. It also
-opens the drawer by **clicking the hamburger**, the way the auditor did, because
-opening it by setting the checkbox never reproduces the escape — focus has to
-start on the hamburger for the 280ms window to matter.
 
 **2. Structural assertions read from Chrome's real accessibility tree** (via CDP
 `Accessibility.queryAXTree`). This layer exists because **axe did not catch the
@@ -46,6 +39,25 @@ announces as "clickable", and does nothing when activated is invisible to
 rule-based scanning but obvious to a screen-reader user. The accessibility tree
 is literally what the screen reader consumes, so "does this announce as a
 heading" becomes a machine-checked assertion instead of a manual judgement.
+
+**2b. A focus-trap probe with real key presses** (`probeFocusTrap`). This one
+cannot be an in-page assertion: a synthetic `KeyboardEvent` does not move focus,
+so the only way to know whether Tab escapes the drawer is to press Tab. It also
+opens the drawer by **clicking the hamburger**, the way the auditor did, because
+opening it by setting the checkbox never reproduces the escape — focus has to
+start on the hamburger for the 280ms window to matter.
+
+**2c. A focus-ring contrast probe with real key presses**
+(`probeFocusContrast`). Also key-press driven, for the same reason plus one
+more: `:focus-visible` does not reliably match a programmatic `.focus()`, so
+reading computed styles after one would measure a rule that never fires for a
+keyboard user. It Tabs through up to 30 stops per page **in both palettes**,
+resolves what is actually painted behind each ring (compositing alpha
+backgrounds, and skipping ancestors that do not cover the control), and
+measures the ratio. It exists because the auditor's final finding of the
+2026-08 round — a 1.41:1 focus ring — was invisible to both other layers: axe
+scores text against its background, and the accessibility tree carries no
+colour at all.
 
 Assertions:
 
@@ -64,6 +76,7 @@ Assertions:
 | `drawer-scrolled-sideways` | The panels sit off-canvas inside a wrapper whose `scrollWidth` spans all of them, so a horizontal scroll there *is* the reflow failure. Revealing a focused element must never move it. |
 | `focus-escapes-drawer-early` / `focus-escapes-drawer` / `focus-escapes-drawer-backward` | WCAG 2.4.3. The open drawer is a modal, so Tab and Shift+Tab must cycle inside it. `-early` is its own check because the bug it guards only exists for the 280ms between opening the drawer and focus moving into it — during which focus is still on the hamburger, outside the trap. |
 | `escape-does-not-close-drawer` / `escape-does-not-restore-focus` / `focus-trapped-after-close` | Escape must close the drawer and hand focus back to the hamburger, and the trap must then let go — a guard left armed drags focus back into a drawer that is no longer on screen. |
+| `focus-ring-low-contrast` / `focus-ring-missing` | WCAG 1.4.11 / 2.4.11. The focus indicator at every real Tab stop must reach 3:1 against the surface behind it, in **both** palettes — the ring colour is a scheme-split token precisely because no single value clears that on both a white and a slate surface. Reported once per distinct ring/background pair, not once per control. A stop in the search UI, or any stop that looks like a failure, is re-measured after a 400ms settle: Material fades the search form to the page colour over several frames, and a same-tick read scores the ring against a surface the user never sits in front of. |
 | `tabbable-offscreen-in-drawer` / `tabbable-covered-in-drawer` | WCAG 1.4.10 (Reflow). With the drawer open, every tabbable sidebar control must be on screen *and* be the topmost element at its own centre. Material parks collapsed drawer panels off-canvas with a transform and lets an open panel cover its parent, hiding neither from the tab order — so the keyboard walked through ~200 controls the user could not see. Each element is `scrollIntoView`'d first, so an item merely below the fold of a scrollable list is not a failure; only one that cannot be scrolled to, or that something is painted over, is. |
 
 ## report/
@@ -74,6 +87,10 @@ Regenerated on every run, gitignored:
 - `<state>_<page>.ax.json` — **the evidence pack.** Every sidebar element with the
   role and name the screen reader receives. Send this to the auditor: it answers
   "how does this announce?" directly rather than by assertion.
+- `<state>_<page>.focus.json` — **the second evidence pack.** Every keyboard
+  stop with its measured ring colour, the background behind it and the ratio,
+  in both palettes. Send this alongside the `.ax.json`: it answers a colour
+  picker aimed at one focused control with the number at all of them.
 - `<state>_<page>.png` — screenshot of each state
 
 ## What this does not cover

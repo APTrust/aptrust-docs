@@ -41,7 +41,7 @@ There is no lint/test suite. `mkdocs build` (without `--strict`) is the closest 
 - **`mkdocs.yml`** is the root config: theme, plugins, and the `nav:` block that stitches the four sub-repos together via `!include ./repos/<name>/mkdocs.yml` entries. Adding/removing/reordering a top-level tab means editing this file.
 - **`mkdocs-monorepo-plugin`** reads each sub-repo's own `mkdocs.yml` for its nav tree and `docs_dir`, then merges all of them into one site build.
 - **`overrides/`** is the Material theme's `custom_dir`. It holds two kinds of thing. **`overrides/partials/`** are *forks* of specific mkdocs-material 9.6.7 templates — `nav.html`, `nav-item.html`, `toc.html` and `header.html` render the sidebar and header chrome as real headings and real buttons instead of Material's CSS-only `<label>` + checkbox pairs (plus the pre-existing `copyright.html` and `search.html`); see the **Accessibility** section below before editing any of them, and note that `requirements.txt` pins the theme version because of these forks. **`overrides/main.html`** extends `base.html` to inject Matomo analytics and the remaining WCAG 2.2 AA JS (focus trap for the mobile drawer, bridging the new buttons to the checkboxes that still hold their state, aria-current, external-link `target="_blank"` + "opens in new tab" treatment, swagger iframe titling, skip-link fallback). These exist because Material's stock templates have accessibility gaps — read the inline comments before changing header/nav/drawer behavior, they explain *why* each patch exists, not just what it does. The same file also carries two bug fixes that are not accessibility patches: the swagger iframe sizing/dark-mode fallback described under "Known constraints", and an inline `<style>` in `extrahead` that sizes Material's inline SVG icons. Those icons carry only a `viewBox`, so with no stylesheet applied the header logo renders ~1500px square in black — visible as a flash because `navigation.instant` swaps the stylesheet `<link>` elements on every navigation, and a cold or revalidating fetch leaves a gap with nothing applied. The rule is inline (no network dependency, and Material's head swap only touches `<link>`s) and wrapped in `:where()` so it has zero specificity and never overrides Material's own icon sizing.
-- **`docs/stylesheets/extra.css`** adds search-result site-label badges and external-link indicators, plus the styling that supports the partial overrides: user-agent resets for the new `<button>`/`<h*>` nav elements, the breakpoint rules that show exactly one of each section heading/toggle pair, and a block of compatibility shims for Material rules that select on `[for=__drawer]`/`[for=__toc]` (see **Accessibility**). The badge selectors are keyed to each sub-repo's `site_name`-derived URL prefix — if a sub-repo's `site_name` changes, the matching `href*=` selector here must change too. It also carries two contrast blocks (WCAG 1.4.3 for code-block tokens, 1.4.11 for the collapsible admonition arrow); the arrow block is **split into `[data-md-color-scheme="default"]` and `[data-md-color-scheme="slate"]` halves and must stay split** — the two schemes need opposite adjustments and collapsing them to one value per type drops slate below 3:1. See the comment on that block for why it targets 4.5:1 rather than the 3:1 the criterion asks for.
+- **`docs/stylesheets/extra.css`** adds search-result site-label badges and external-link indicators, plus the styling that supports the partial overrides: user-agent resets for the new `<button>`/`<h*>` nav elements, the breakpoint rules that show exactly one of each section heading/toggle pair, and a block of compatibility shims for Material rules that select on `[for=__drawer]`/`[for=__toc]` (see **Accessibility**). The badge selectors are keyed to each sub-repo's `site_name`-derived URL prefix — if a sub-repo's `site_name` changes, the matching `href*=` selector here must change too. It also carries the focus-ring colour token (see **Accessibility**) and two contrast blocks (WCAG 1.4.3 for code-block tokens, 1.4.11 for the collapsible admonition arrow); the arrow block is **split into `[data-md-color-scheme="default"]` and `[data-md-color-scheme="slate"]` halves and must stay split** — the two schemes need opposite adjustments and collapsing them to one value per type drops slate below 3:1. See the comment on that block for why it targets 4.5:1 rather than the 3:1 the criterion asks for.
 - **API page**: `docs/api.md` embeds `docs/member_api_v3.yml` via `<swagger-ui src="member_api_v3.yml"/>` (the `mkdocs-swagger-ui-tag` plugin). The committed YAML copy is a fallback for offline `mkdocs serve`; in CI it's overwritten on every build by curling the live spec from `APTrust/registry` (master branch, `member_api_v3.yml` at repo root — note: the *registry* repo, not *registry-docs*). Don't hand-edit the committed spec at all: it won't persist to prod, and the nightly run (see the workflow bullet below) commits the upstream version back over it on `main`. `api.md` also sets `hide: toc` in its front matter: the whole reference lives inside the iframe, so the page generates no headings and Material's secondary sidebar would otherwise sit there as 266px of empty space. Hiding it hands that column to the iframe (757px → ~1032px) without touching `.md-grid`, so the header, tab bar, left nav and footer stay aligned with every other page.
 - **`.github/workflows/build-and-deploy.yml`** builds and deploys to `gh-pages` via `peaceiris/actions-gh-pages` (force-orphan, custom domain `docs.aptrust.org`). It fires on: push to `main` in this repo, manual `workflow_dispatch`, `repository_dispatch` (`sub-repo-updated`) sent by each sub-repo's own `notify-parent-docs.yml` workflow when *its* main/master changes, and a nightly `schedule` at 07:00 UTC. That dispatch requires a `DOCS_DISPATCH_TOKEN`/`DOCS_DISPATCH_PAT` fine-grained PAT (Contents: Read and write on `APTrust/aptrust-docs`) stored as a secret in each sub-repo. The nightly schedule exists because the Member API spec lives in `APTrust/registry`, which sends no dispatch here — on `schedule` and `workflow_dispatch` only, Step 5 commits the curled spec back to `main` when it differs, so the offline fallback copy stays current and spec changes get a git history. The commit lives in this workflow rather than a standalone sync workflow because `GITHUB_TOKEN` pushes don't trigger workflow runs (which is also why it can't loop) — a separate workflow would need a PAT to make the site redeploy.
 
@@ -268,12 +268,47 @@ accessibility tree, and already carries a valid `aria-label` — the `<label>` i
 just the icon), and the **overlay backdrop** (decorative; Escape and the drawer's
 Close button are the real exits).
 
+### The focus ring is one token, split by scheme — keep it split
+
+Ablr's final finding of the 2026-08 round. Every focus ring in `extra.css` is
+`var(--aptrust-focus-ring)`, defined twice: `#A55E00` on `:root` (the light
+scheme) and `#FFD600` under `[data-md-color-scheme="slate"]`.
+
+It shipped as the yellow in **both** schemes, under a comment claiming "13:1 on
+white". That number had been measured against black. `#FFD600` on white is
+**1.41:1** — which is what the auditor's Colour Contrast Analyser reported, and
+nowhere near the 3:1 that 1.4.11 and 2.4.11 want of a focus indicator. On the
+slate surface the same yellow is ~11:1, so this was only ever a light-scheme
+defect, and one value cannot fix it for both — the same constraint that keeps
+the admonition-arrow block split.
+
+Three rules about it:
+
+- **One solid colour per scheme, never a two-tone ring.** A yellow band with a
+  dark companion band passes on the numbers, but it hands an eyedropper a
+  failing band to land on — exactly how the admonition-arrow fix got re-reported
+  as unchanged. Every sampled pixel of this ring passes.
+- **Sidebar rings keep their inset (`-2px`) offsets.**
+  `.md-sidebar__scrollwrap` is `overflow: clip` at the drawer breakpoint, so an
+  outward ring on a sidebar control would be clipped away.
+- **Surfaces that are not the page or the header need their own rule.** Three
+  exist: the header/tab bar keeps a white ring on indigo (6.86:1); the footer
+  takes the yellow in both schemes because it is dark in both (amber would only
+  reach 3.6:1 there); and the whole search UI takes the token, because focusing
+  the field activates the search and the active form is the *page* surface —
+  white in default, `#1e2129` in slate — where the header's white ring measured
+  **1:1**. That one is not in the auditor's report; the probe below found it.
+  Note the search form only fades to its final colour a few frames after focus,
+  so anything measuring it has to let it settle first.
+
 ### Verifying — do both before telling the auditor to retest
 
 **1. Automated.** `cd tools/a11y-check && npm run a11y` — 7 pages x 4 viewport
-states, axe-core plus assertions read from Chrome's real accessibility tree. See
-`tools/a11y-check/README.md`. `report/*.ax.json` is the evidence pack to send the
-auditor: it shows the role and name the screen reader actually receives.
+states, axe-core plus assertions read from Chrome's real accessibility tree and
+two key-press-driven probes. See `tools/a11y-check/README.md`. Two evidence packs
+to send the auditor: `report/*.ax.json` shows the role and name the screen reader
+actually receives, and `report/*.focus.json` shows the focus ring's measured
+colour, background and contrast ratio at every keyboard stop in both palettes.
 
 The `mobile-320-drawer` state carries the reflow assertion: with the drawer open,
 every tabbable sidebar control must be on screen *and* be the topmost element at
@@ -281,6 +316,11 @@ its own centre (`tabbable-offscreen-in-drawer` / `tabbable-covered-in-drawer`).
 Strip the "Drawer reflow" block from `extra.css` and it reports hundreds of
 failures — that is the check being non-vacuous, and worth re-confirming if you
 ever rework those rules.
+
+`focus-ring-low-contrast` guards the ring token the same way, in both palettes.
+Point `--aptrust-focus-ring` back at `#FFD600` and it reproduces the auditor's
+reading exactly (`#ffd600 ring on #ffffff = 1.41:1`) on every light-scheme page.
+As shipped, the worst ratio anywhere on the site is 5:1.
 
 **2. Manual, with VoiceOver.** Automated checks cannot confirm how a screen
 reader speaks. At 1280px and at 375px:
@@ -298,6 +338,9 @@ reader speaks. At 1280px and at 375px:
   back up too ("Preservation Actions" → "User Guide" → the site name).
 - In the drawer at 320px, Tab all the way round: every stop must be on a control
   you can see, and the visible panel must never scroll itself out of view.
+- Tab to the search field in both palettes and look at the ring on the white
+  (or slate) search sheet — that surface is the one place the header's white
+  ring used to disappear.
 - The sidebar logo is silent (decorative); the header logo still announces as the
   home link.
 
