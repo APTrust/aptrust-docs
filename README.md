@@ -73,7 +73,11 @@ The build-and-deploy workflow runs on four triggers:
 
 1. **Push to `main` in this repo** — for changes to the landing page, bridge pages, `mkdocs.yml`, or `requirements.txt`.
 
-2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a secret named `DOCS_DISPATCH_TOKEN` in each sub-repo: a fine-grained PAT with **Contents: Read and write** permission on this repo (`APTrust/aptrust-docs`).
+2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a fine-grained PAT — owned by the `aptdeploy` service account, with **Contents: Read and write** on this repo (`APTrust/aptrust-docs`), expiring after 366 days — stored as an Actions secret in each sub-repo.
+
+   **The secret is not named the same in all four repos.** `userguide`, `registry-docs` and `preserv-docs` call it `DOCS_DISPATCH_TOKEN`; `dart-docs` calls it `DOCS_DISPATCH_PAT`. Check that sub-repo's own `notify-parent-docs.yml` rather than assuming. This matters most when rotating the PAT: updating only `DOCS_DISPATCH_TOKEN` leaves dart-docs holding the expired one.
+
+   An expired or missing token fails *quietly*. The sub-repo's `Notify Parent Docs Repo` run turns red, but the site doesn't break — the nightly build (trigger 4) clones all four sub-repos fresh, so content still ships, just up to 24 hours later instead of ~2 minutes. The symptom is "my doc change isn't live yet", not "the docs are down".
 
 3. **Manual run** — from the Actions tab → Build and Deploy Documentation → Run workflow.
 
@@ -143,7 +147,7 @@ VoiceOver checklist that automation cannot replace.
 
 1. Add an `!include` entry to the `nav:` block in `mkdocs.yml`.
 2. Add a matching `git clone` line to the Clone step in `.github/workflows/build-and-deploy.yml`.
-3. Add `notify-parent-docs.yml` to the new sub-repo and configure `DOCS_DISPATCH_TOKEN` in its secrets.
+3. Add `notify-parent-docs.yml` to the new sub-repo and configure `DOCS_DISPATCH_TOKEN` in its secrets. Use that name — `dart-docs`'s `DOCS_DISPATCH_PAT` is a historical inconsistency, not the convention.
 4. Add a badge selector to `docs/stylesheets/extra.css` so search results show the section label.
 
 ## Adding a Swagger/API page
