@@ -13,7 +13,8 @@ name: Build and Deploy Documentation
 #    the gh-pages branch.
 #
 # 3. repository_dispatch (type: sub-repo-updated) — for changes in any of the
-#    four sub-repos (preserv-docs, registry-docs, dart-docs, userguide). Each
+#    five sub-repos (preserv-docs, registry-docs, dart-docs, userguide,
+#    tdr-docs). Each
 #    sub-repo has its own workflow that fires a repository_dispatch event here
 #    whenever content is pushed to its main/master branch.
 #
@@ -28,12 +29,12 @@ name: Build and Deploy Documentation
 #      the deployed site always reflects current content on main.
 #    - client_payload can carry metadata (e.g., which sub-repo changed, the
 #      commit SHA) that shows up in logs — useful for debugging, but we rebuild
-#      all four sub-repos regardless since mkdocs builds the whole site at once.
+#      all five sub-repos regardless since mkdocs builds the whole site at once.
 #
 # 4. schedule (nightly) — for changes to the Member API OpenAPI spec.
 #
 #    The spec rendered on /api/ is maintained in APTrust/registry, which is NOT
-#    one of the four docs sub-repos and sends us no repository_dispatch. Without
+#    one of the five docs sub-repos and sends us no repository_dispatch. Without
 #    a schedule, an API spec change stays unpublished until something unrelated
 #    happens to trigger a build. The nightly run pulls the current spec (Step 4),
 #    commits it back to main if it changed (Step 5), and redeploys.
@@ -108,7 +109,7 @@ jobs:
       # ── Step 2: Check out aptrust-docs ──────────────────────────────────────
       #
       # Fetches this repo's content: mkdocs.yml, requirements.txt, docs/index.md,
-      # and this workflow file. The four docs/*/ sub-directories do not exist here;
+      # and this workflow file. The five docs/*/ sub-directories do not exist here;
       # they are created in the next step by cloning the sub-repos.
       #
       - name: Check out aptrust-docs
@@ -136,7 +137,10 @@ jobs:
       #   ├── dart/                  ← APTrust/dart-docs
       #   │   ├── mkdocs.yml
       #   │   └── docs/
-      #   └── userguide/             ← APTrust/userguide
+      #   ├── userguide/             ← APTrust/userguide
+      #   │   ├── mkdocs.yml
+      #   │   └── docs/
+      #   └── tdr/                   ← APTrust/tdr-docs
       #       ├── mkdocs.yml
       #       └── docs/
       #
@@ -154,6 +158,7 @@ jobs:
           git clone --depth 1 https://github.com/APTrust/registry-docs  repos/registry
           git clone --depth 1 https://github.com/APTrust/dart-docs      repos/dart
           git clone --depth 1 https://github.com/APTrust/userguide      repos/userguide
+          git clone --depth 1 https://github.com/APTrust/tdr-docs       repos/tdr
 
       # ── Step 4: Refresh API spec ────────────────────────────────────────────
       #
@@ -186,7 +191,7 @@ jobs:
       # push cannot loop back into another build.
       #
       # The event guard keeps the sync owned by the nightly (and manual) run. Any
-      # push to main and every repository_dispatch from the four sub-repos would
+      # push to main and every repository_dispatch from the five sub-repos would
       # otherwise also try to commit, appending bot commits onto unrelated content
       # pushes. Those runs still deploy the fresh spec — they just don't commit it.
       #
@@ -233,7 +238,7 @@ jobs:
       # ── Step 8: Build the documentation site ────────────────────────────────
       #
       # mkdocs reads the root mkdocs.yml. The mkdocs-monorepo-plugin resolves
-      # the four !include directives in the nav section: it reads each sub-repo's
+      # the five !include directives in the nav section: it reads each sub-repo's
       # mkdocs.yml to get that section's nav tree and docs_dir, then merges
       # everything into a single unified site written to ./site/.
       #

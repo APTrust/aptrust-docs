@@ -79,6 +79,7 @@ nav:
   - DART: '!include ./repos/dart/mkdocs.yml'
   - Partner Tools: user-guide/partner_tools.md
   - API: api.md
+  - TDR: '!include ./repos/tdr/mkdocs.yml'
   - Registry: '!include ./repos/registry/mkdocs.yml'
   - Preservation Services: '!include ./repos/preserv/mkdocs.yml'  
   - Other Documentation: documentation.md

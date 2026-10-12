@@ -1,6 +1,6 @@
 # APTrust Documentation
 
-Unified documentation site for APTrust, combining four previously separate doc repos into a single site using [mkdocs-monorepo-plugin](https://github.com/backstage/mkdocs-monorepo-plugin).
+Unified documentation site for APTrust, combining five separately maintained doc repos into a single site using [mkdocs-monorepo-plugin](https://github.com/backstage/mkdocs-monorepo-plugin).
 
 **Live site:** https://docs.aptrust.org
 
@@ -8,7 +8,7 @@ Unified documentation site for APTrust, combining four previously separate doc r
 
 ## What's in this repo
 
-This repo contains only the scaffolding for the unified site. It does not contain the actual documentation content — that lives in the four source repos below.
+This repo contains only the scaffolding for the unified site. It does not contain the actual documentation content — that lives in the five source repos below.
 
 | Tab | Source repo | URL path |
 |---|---|---|
@@ -16,6 +16,7 @@ This repo contains only the scaffolding for the unified site. It does not contai
 | DART | [APTrust/dart-docs](https://github.com/APTrust/dart-docs) | `/dart-docs/` |
 | Preservation Services | [APTrust/preserv-docs](https://github.com/APTrust/preserv-docs) | `/preservation-services-docs/` |
 | Registry | [APTrust/registry-docs](https://github.com/APTrust/registry-docs) | `/registry-docs/` |
+| TDR | [APTrust/tdr-docs](https://github.com/APTrust/tdr-docs) | `/tdr/` |
 
 One tab is a direct content page that lives in `docs/` in this repo:
 
@@ -55,7 +56,7 @@ tools/
 
 ## How the build works
 
-At build time, each sub-repo is cloned into `repos/` at the project root. The `mkdocs-monorepo-plugin` reads each sub-repo's `mkdocs.yml` to get its navigation tree, then merges all four into a single site. Sub-repos live in `repos/` rather than `docs/` so MkDocs's own file scanner doesn't pick them up as a second copy of the content.
+At build time, each sub-repo is cloned into `repos/` at the project root. The `mkdocs-monorepo-plugin` reads each sub-repo's `mkdocs.yml` to get its navigation tree, then merges all five into a single site. Sub-repos live in `repos/` rather than `docs/` so MkDocs's own file scanner doesn't pick them up as a second copy of the content.
 
 The monorepo plugin reads **only** `nav` and `docs_dir` from a sub-repo's config — it never runs that sub-repo's `plugins:` block. Anything a sub-repo declares there has to be re-declared in this repo's `mkdocs.yml` instead, rewritten against the merged tree (so paths carry the sub-repo's URL prefix). The `redirects` entries for `/user-guide/bagging/` are the current example.
 
@@ -64,7 +65,8 @@ repos/               ← created at build time, not committed
 ├── preserv/         ← clone of APTrust/preserv-docs
 ├── registry/        ← clone of APTrust/registry-docs
 ├── dart/            ← clone of APTrust/dart-docs
-└── userguide/       ← clone of APTrust/userguide
+├── userguide/       ← clone of APTrust/userguide
+└── tdr/             ← clone of APTrust/tdr-docs
 ```
 
 ## Automatic deploys
@@ -73,17 +75,17 @@ The build-and-deploy workflow runs on four triggers:
 
 1. **Push to `main` in this repo** — for changes to the landing page, bridge pages, `mkdocs.yml`, or `requirements.txt`.
 
-2. **Push to `master` in any sub-repo** — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a fine-grained PAT — owned by the `aptdeploy` service account, with **Contents: Read and write** on this repo (`APTrust/aptrust-docs`), expiring after 366 days — stored as an Actions secret in each sub-repo.
+2. **Push to the default branch of any sub-repo** (`master`, or `main` in `tdr-docs`) — each sub-repo has a `.github/workflows/notify-parent-docs.yml` that sends a `repository_dispatch` event here when content changes. This requires a fine-grained PAT — owned by the `aptdeploy` service account, with **Contents: Read and write** on this repo (`APTrust/aptrust-docs`), expiring after 366 days — stored as an Actions secret in each sub-repo.
 
-   **The secret is not named the same in all four repos.** `userguide`, `registry-docs` and `preserv-docs` call it `DOCS_DISPATCH_TOKEN`; `dart-docs` calls it `DOCS_DISPATCH_PAT`. Check that sub-repo's own `notify-parent-docs.yml` rather than assuming. This matters most when rotating the PAT: updating only `DOCS_DISPATCH_TOKEN` leaves dart-docs holding the expired one.
+   **The secret is not named the same in all five repos.** `userguide`, `registry-docs`, `preserv-docs` and `tdr-docs` call it `DOCS_DISPATCH_TOKEN`; `dart-docs` calls it `DOCS_DISPATCH_PAT`. Check that sub-repo's own `notify-parent-docs.yml` rather than assuming. This matters most when rotating the PAT: updating only `DOCS_DISPATCH_TOKEN` leaves dart-docs holding the expired one.
 
-   An expired or missing token fails *quietly*. The sub-repo's `Notify Parent Docs Repo` run turns red, but the site doesn't break — the nightly build (trigger 4) clones all four sub-repos fresh, so content still ships, just up to 24 hours later instead of ~2 minutes. The symptom is "my doc change isn't live yet", not "the docs are down".
+   An expired or missing token fails *quietly*. The sub-repo's `Notify Parent Docs Repo` run turns red, but the site doesn't break — the nightly build (trigger 4) clones all five sub-repos fresh, so content still ships, just up to 24 hours later instead of ~2 minutes. The symptom is "my doc change isn't live yet", not "the docs are down".
 
 3. **Manual run** — from the Actions tab → Build and Deploy Documentation → Run workflow.
 
 4. **Nightly at 07:00 UTC** (3:00 AM EDT / 2:00 AM EST) — picks up changes to the Member API OpenAPI spec, which lives in `APTrust/registry` and sends no dispatch event here. The nightly run also commits the refreshed spec back to `main` when it has changed upstream. Note that GitHub disables scheduled workflows after 60 days of no commit activity in a repo; if that happens, re-enable it from the Actions tab.
 
-The workflow clones the four sub-repos, runs `mkdocs build`, and deploys the output to the `gh-pages` branch via [peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages). GitHub Pages serves from that branch.
+The workflow clones the five sub-repos, runs `mkdocs build`, and deploys the output to the `gh-pages` branch via [peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages). GitHub Pages serves from that branch.
 
 `docs.aptrust.org` is then **proxied through Cloudflare**, which terminates TLS in front of GitHub Pages. Two consequences worth knowing:
 
@@ -100,6 +102,7 @@ git clone --depth 1 https://github.com/APTrust/preserv-docs  repos/preserv
 git clone --depth 1 https://github.com/APTrust/registry-docs  repos/registry
 git clone --depth 1 https://github.com/APTrust/dart-docs      repos/dart
 git clone --depth 1 https://github.com/APTrust/userguide      repos/userguide
+git clone --depth 1 https://github.com/APTrust/tdr-docs       repos/tdr
 
 mkdocs serve     # live preview at http://127.0.0.1:8000
 mkdocs build     # write static site to ./site/
@@ -134,7 +137,7 @@ Before shipping a change that touches the header, sidebar, focus styles, or
 cd tools/a11y-check && npm run a11y
 ```
 
-It sweeps 7 pages at 4 viewport states (including the mobile drawer open at
+It sweeps 8 pages at 4 viewport states (including the mobile drawer open at
 320px, the width WCAG 1.4.10 Reflow names) with axe-core plus assertions read
 from Chrome's real accessibility tree, a focus-trap probe and a focus-ring
 contrast probe (both driven by real key presses, in both palettes), and writes

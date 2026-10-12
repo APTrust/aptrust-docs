@@ -46,6 +46,7 @@ const PAGES = [
   '/user-guide/preservation/ingest/',
   '/dart-docs/',
   '/registry-docs/',
+  '/tdr/',
   '/api/',
   '/policies/',
 ];

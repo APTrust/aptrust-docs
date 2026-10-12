@@ -1,7 +1,7 @@
 ---
 description: >-
   APTrust documentation hub: user guides for depositing, registry management,
-  DART desktop tool, and preservation services technical reference.
+  DART desktop tool, preservation services, and ISO 16363 self-assessment.
 ---
 
 # APTrust Documentation
@@ -42,6 +42,14 @@ Interactive reference for the APTrust Member REST API v3, powered by the OpenAPI
 
 ---
 
+## [TDR](/tdr/)
+
+APTrust's self-assessment against ISO 16363, the standard for audit and certification of trustworthy digital repositories, with an overview of the OAIS reference model (ISO 14721). One page per criterion across the three audit areas — organizational infrastructure, digital object management, and infrastructure and security risk management — each giving the requirement and the evidence APTrust provides for it.
+
+**Audience:** Members, auditors, and stakeholders evaluating APTrust as a trustworthy digital repository.
+
+---
+
 ## [Registry](/registry-docs/)
 
 Developer documentation for the APTrust Registry web application, which provides the member-facing UI and REST API. Covers code structure, request handling, security model (roles, authentication, authorization, CSRF, headers), data models, database, NSQ integration, UI components, and the testing approach.
@@ -60,9 +68,9 @@ Technical documentation for the APTrust preservation backend — the workers, co
 
 ## [Other Documentation](/documentation/)
 
-Additional APTrust documentation hosted on aptrust.org, including the Trusted Digital Repository self-certification against ISO 16363 and the OAIS reference model, member-restricted technical resources, and legacy reference materials.
+Additional APTrust documentation hosted on aptrust.org, including member-restricted technical resources and legacy reference materials.
 
-**Audience:** Members, institutional partners, and stakeholders seeking governance or certification documentation.
+**Audience:** Members and institutional partners.
 
 ---
 

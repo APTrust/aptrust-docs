@@ -14,11 +14,11 @@ so it can gate a release.
 
 ## What it sweeps
 
-7 pages x 4 states = 28 combinations:
+8 pages x 4 states = 32 combinations:
 
 | | |
 |---|---|
-| **Pages** | `/`, `/user-guide/`, `/user-guide/preservation/ingest/`, `/dart-docs/`, `/registry-docs/`, `/api/`, `/policies/` |
+| **Pages** | `/`, `/user-guide/`, `/user-guide/preservation/ingest/`, `/dart-docs/`, `/registry-docs/`, `/tdr/`, `/api/`, `/policies/` |
 | **States** | desktop 1280x800; mobile 375x812 drawer closed; mobile 375x812 **drawer open**; mobile 320x512 **drawer open** |
 
 The drawer-open states matter: they are the only ones in which the sidebar's own
