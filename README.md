@@ -61,13 +61,15 @@ At build time, each sub-repo is cloned into `repos/` at the project root. The `m
 The monorepo plugin reads **only** `nav` and `docs_dir` from a sub-repo's config — it never runs that sub-repo's `plugins:` block. Anything a sub-repo declares there has to be re-declared in this repo's `mkdocs.yml` instead, rewritten against the merged tree (so paths carry the sub-repo's URL prefix). The `redirects` entries for `/user-guide/bagging/` are the current example.
 
 ```
-repos/               ← created at build time, not committed
+repos/               ← created at build time; gitignored, never committed
 ├── preserv/         ← clone of APTrust/preserv-docs
 ├── registry/        ← clone of APTrust/registry-docs
 ├── dart/            ← clone of APTrust/dart-docs
 ├── userguide/       ← clone of APTrust/userguide
 └── tdr/             ← clone of APTrust/tdr-docs
 ```
+
+`repos/` is listed in `.gitignore`. Each directory in it is an independent clone of its sub-repo: update one with `git -C repos/<name> pull`, and commit content changes in the sub-repo itself, never here. CI ignores whatever is on your machine and clones all five fresh on every build.
 
 ## Automatic deploys
 
@@ -97,7 +99,7 @@ The workflow clones the five sub-repos, runs `mkdocs build`, and deploys the out
 ```bash
 pip install -r requirements.txt
 
-# Clone the sub-repos into repos/
+# Clone the sub-repos into repos/ (gitignored — these clones never show up in git status)
 git clone --depth 1 https://github.com/APTrust/preserv-docs  repos/preserv
 git clone --depth 1 https://github.com/APTrust/registry-docs  repos/registry
 git clone --depth 1 https://github.com/APTrust/dart-docs      repos/dart

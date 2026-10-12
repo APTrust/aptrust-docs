@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `docs/` in *this* repo only holds: the landing page (`index.md`), the API reference page (`api.md` + `member_api_v3.yml`), two bridge pages that link out to aptrust.org (`documentation.md`, `policies.md`), an accessibility page, and `stylesheets/extra.css`.
 
-Sub-repos are cloned into `repos/` (not `docs/`) at build time so MkDocs's own file scanner doesn't pick up their markdown as a second, duplicate copy of the content. `repos/` is not committed — it's created fresh by cloning in CI or manually for local builds.
+Sub-repos are cloned into `repos/` (not `docs/`) at build time so MkDocs's own file scanner doesn't pick up their markdown as a second, duplicate copy of the content. `repos/` is gitignored and never committed — it's created fresh by cloning in CI or manually for local builds. (Until 2026-10-12 the clones were tracked as gitlinks with no `.gitmodules`, which made every `git pull` inside one show up as `modified: repos/<name> (new commits)`; don't `git add -f` them back.)
 
 Before editing content, check which repo actually owns it: nav sections that resolve via `!include ./repos/<name>/mkdocs.yml` live in that sub-repo, not here. Only `index.md`, `api.md`, `documentation.md`, `policies.md`, `accessibility.md`, and the theme/CSS overrides belong in this repo.
 
@@ -25,7 +25,7 @@ Before editing content, check which repo actually owns it: nav sections that res
 ```bash
 pip install -r requirements.txt
 
-# Clone the sub-repos into repos/ (required before serve/build — repos/ is gitignored-equivalent, not committed)
+# Clone the sub-repos into repos/ (required before serve/build — repos/ is gitignored, not committed)
 git clone --depth 1 https://github.com/APTrust/preserv-docs  repos/preserv
 git clone --depth 1 https://github.com/APTrust/registry-docs  repos/registry
 git clone --depth 1 https://github.com/APTrust/dart-docs      repos/dart
