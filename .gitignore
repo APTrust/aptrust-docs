@@ -4,3 +4,4 @@
 # is regenerated locally all the time; the deployed copy is built in CI.
 site/
 .DS_Store
+repos/
