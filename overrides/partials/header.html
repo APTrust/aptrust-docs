@@ -3,7 +3,8 @@
 
   Upstream md5: 6ad480f924e3fa6ec5a2ab519246a03f — re-diff against the installed
   theme after any mkdocs-material upgrade (requirements.txt pins 9.6.7 for this
-  reason). Only the drawer and search toggles differ from upstream.
+  reason). Only the drawer and search toggles, and the APTrust section label
+  in the first header topic, differ from upstream.
 
   WHY (axe aria-prohibited-attr, serious, on every page):
 
@@ -44,9 +45,17 @@
     </button>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
+        {#- APTrust: current documentation set, shown only below 76.25em where
+            the tab bar is hidden (see "Mobile section label" in extra.css). It
+            sits in this first topic, which instant navigation does NOT swap, so
+            overrides/main.html re-syncs it from the active tab on every page. -#}
+        {% set section = nav | selectattr("active") | first %}
         <div class="md-header__topic">
           <span class="md-ellipsis">
             {{ config.site_name }}
+          </span>
+          <span class="md-ellipsis aptrust-section"{% if not section or section.is_homepage %} hidden{% endif %}>
+            {%- if section and not section.is_homepage %}{{ section.title }}{% endif -%}
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">

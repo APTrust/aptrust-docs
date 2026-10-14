@@ -43,7 +43,7 @@ docs/
 ├── documentation.md      # Bridge page → aptrust.org/documentation/
 ├── policies.md           # Bridge page → aptrust.org/resources/policies/
 └── stylesheets/
-    └── extra.css         # Search result site-label badges, external link indicators
+    └── extra.css         # Search result site-label badges, external link indicators, active-tab bar
 overrides/
 ├── main.html             # Theme extension — Matomo analytics, WCAG 2.2 AA patches
 └── partials/             # Overridden template partials (forked from mkdocs-material)

@@ -205,6 +205,31 @@
             l.setAttribute('aria-current', 'page');
         });
 
+        /* Same for the top tab bar, whose active item is otherwise only a
+           visual bar (see extra.css). "true" rather than "page": the tab marks
+           the current documentation set, and its link is usually that set's
+           first page, not the one being read. */
+        document.querySelectorAll('.md-tabs__link[aria-current]').forEach(function (l) {
+            l.removeAttribute('aria-current');
+        });
+        document.querySelectorAll('.md-tabs__item--active > .md-tabs__link').forEach(function (l) {
+            l.setAttribute('aria-current', l.href === location.href.split('#')[0] ? 'page' : 'true');
+        });
+
+        /* Mobile section label (overrides/partials/header.html). It lives in
+           the header's first topic, which instant navigation does not replace,
+           so the server-rendered text goes stale after an in-site click. The
+           tab bar IS replaced, so copy the active tab's title from it. The home
+           tab gets no label, matching the template. */
+        var sectionLabel = document.querySelector('.aptrust-section');
+        if (sectionLabel) {
+            var activeTab = document.querySelector('.md-tabs__item--active > .md-tabs__link');
+            var logo = document.querySelector('.md-header .md-logo');
+            var isHome = !activeTab || (logo && activeTab.href === logo.href);
+            sectionLabel.textContent = isHome ? '' : activeTab.textContent.trim();
+            sectionLabel.hidden = isHome;
+        }
+
         /* Sidebar disclosure buttons.
 
            overrides/partials/nav-item.html renders every real expand/collapse

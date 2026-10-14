@@ -6,16 +6,11 @@ description: >-
 
 # Other APTrust Documentation
 
-The APTrust website hosts additional documentation covering software overviews,
-member-restricted technical resources, and legacy reference materials.
+The APTrust website hosts additional documentation covering member-restricted technical resources and legacy reference materials.
 
 [Open on APTrust.org ↗](https://aptrust.org/documentation/){ .md-button .md-button--primary target="_blank" rel="noopener noreferrer" }
 
 ---
-
-## Software Documentation
-
-Overview documentation for DART, Registry, Partner Tools, and Preservation Services.
 
 ## Technical Documentation
 
